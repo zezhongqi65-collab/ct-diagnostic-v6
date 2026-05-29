@@ -430,13 +430,39 @@ def ollama_generate(prompt, model=OLLAMA_MODEL, timeout=60):
                   "options": {"temperature": 0.4, "num_predict": 1200, "top_p": 0.9}},
             timeout=timeout
         )
-        return response.json().get("response", "[Ollama生成失败]") if response.status_code == 200 else "[Ollama请求失败]"
+        if response.status_code == 200:
+            return response.json().get("response")
+        return None
     except requests.exceptions.ConnectionError:
-        return "[错误：Ollama未启动。请先运行 'ollama serve']"
+        return None
     except requests.exceptions.Timeout:
-        return f"[错误：Ollama请求超时（{timeout}秒）。请检查模型是否已加载。]"
+        return None
+    except Exception:
+        return None
+
+
+def generate_with_deepseek(prompt):
+    """调用 DeepSeek API 润色文本，失败返回 None"""
+    api_key = _os.environ.get("DEEPSEEK_API_KEY")
+    if not api_key:
+        print("[警告] 环境变量 DEEPSEEK_API_KEY 未设置")
+        return None
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+        response = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[
+                {"role": "system", "content": "你是一个文本润色助手，只优化语言，不修改任何数据和事实。"},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.4,
+            timeout=30,
+        )
+        return response.choices[0].message.content
     except Exception as e:
-        return f"[错误：{str(e)}]"
+        print(f"[警告] DeepSeek API 调用失败: {e}")
+        return None
 
 
 # ============================================
@@ -523,6 +549,7 @@ def generate_report_template(student_id, student, df_results, base_pred,
 def polish_report_with_llm(structured_report, student_id):
     """
     v6第二层约束：大模型仅做语言润色
+    自动切换润色引擎：Ollama → DeepSeek API → 模板回退
     prompt中设置严格规则，禁止大模型修改任何数据、优先级、分类
     """
     polish_prompt = f"""你是一位教育文案编辑。你的任务是润色以下诊断报告的文字，使其更加通顺、专业、易读。
@@ -546,7 +573,21 @@ def polish_report_with_llm(structured_report, student_id):
 
 请直接输出润色后的报告正文，不要添加总结或额外说明。"""
 
-    return ollama_generate(polish_prompt, timeout=90)
+    # 1. 尝试本地 Ollama
+    print("[润色] 尝试本地 Ollama...")
+    result = ollama_generate(polish_prompt, timeout=90)
+    if result is not None:
+        return result
+
+    # 2. Ollama 不可用，切换至 DeepSeek API
+    print("[润色] Ollama 不可用，切换至 DeepSeek API")
+    result = generate_with_deepseek(polish_prompt)
+    if result is not None:
+        return result
+
+    # 3. DeepSeek 也失败，回退到模板报告
+    print("[润色] DeepSeek API 失败，使用模板报告")
+    return structured_report
 
 
 # ---------- 第三层：程序自动保真度校验 ----------
@@ -648,9 +689,9 @@ def generate_teacher_report_v6(student_id, student, sv, ce_dict, df_results, mod
     print("[步骤2/3] 大模型语言润色（仅优化文字，不改数据）...")
     polished_report = polish_report_with_llm(structured_report, student_id)
 
-    # 如果Ollama连接失败，直接返回结构化报告
-    if polished_report.startswith("["):
-        print("⚠️ Ollama不可用，返回结构化模板报告（保真度100%）")
+    # 如果润色引擎均不可用，返回的仍是原模板报告
+    if polished_report == structured_report:
+        print("⚠️ 润色引擎均不可用，返回结构化模板报告（保真度100%）")
         return structured_report, structured_report
 
     # 步骤3: 保真度校验
