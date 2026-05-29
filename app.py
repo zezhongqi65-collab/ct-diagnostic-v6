@@ -44,7 +44,6 @@ from completeV6_patched import (
     plot_dual_diagnosis,
     generate_report_template,
     generate_teacher_report_v6,
-    ollama_generate,
     layer1_counterfactual,
     layer2_dual_diagnosis,
     save_report,
@@ -76,7 +75,6 @@ DEFAULT_STATE = {
     'model_ready': False,
     'diag_result': None,
     'batch_results': None,
-    'ollama_available': False,
 }
 
 for key, val in DEFAULT_STATE.items():
@@ -104,13 +102,9 @@ def check_ollama():
     try:
         import requests
         resp = requests.get("http://localhost:11434/api/tags", timeout=3)
-        if resp.status_code == 200:
-            st.session_state.ollama_available = True
-            return True
+        return resp.status_code == 200
     except Exception:
-        pass
-    st.session_state.ollama_available = False
-    return False
+        return False
 
 
 def render_dimension_scores(scores: dict):
@@ -162,16 +156,28 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # Ollama 配置
+    # 润色引擎配置
     st.markdown("### 🤖 大模型润色（可选）")
-    use_ollama = st.checkbox("启用Ollama报告润色", value=False)
-    if use_ollama:
-        ollama_model = st.text_input("模型名称", value="qwen:7b")
-        if st.button("检测Ollama连接"):
+    use_polish = st.checkbox(
+        "启用报告润色（自动选择引擎）",
+        value=False,
+        help="依次尝试：本地 Ollama → DeepSeek API → 模板回退。任一可用即自动选用。",
+    )
+    if use_polish:
+        import os as _os
+        col_a, col_b = st.columns(2)
+        with col_a:
             if check_ollama():
-                st.success("✅ Ollama已连接")
+                st.success("🟢 Ollama 可用")
             else:
-                st.warning("⚠️ Ollama未启动，将使用模板报告")
+                st.caption("🔴 Ollama 未连接")
+        with col_b:
+            deepseek_key = _os.environ.get("DEEPSEEK_API_KEY", "")
+            if deepseek_key:
+                masked = deepseek_key[:6] + "****" + deepseek_key[-4:]
+                st.success(f"🟢 DeepSeek: {masked}")
+            else:
+                st.caption("🔴 DeepSeek 未配置")
 
     st.markdown("---")
 
@@ -179,7 +185,7 @@ with st.sidebar:
     batch_mode = st.checkbox("📦 批量诊断模式", help="上传包含多个学生的数据进行批量诊断")
 
     st.markdown("---")
-    st.caption("v6.0 — 三层约束保真机制")
+    st.caption("v6.1 — 润色引擎自动切换（Ollama / DeepSeek）")
     st.caption("模板填充 + 大模型润色 + 自动校验")
 
 
@@ -609,11 +615,11 @@ if st.session_state.diag_result:
             r['shap_threshold'], r['ce_threshold'],
         )
 
-        if use_ollama and st.session_state.ollama_available:
-            with st.spinner("正在用大模型润色报告语言..."):
+        if use_polish:
+            with st.spinner("正在润色报告（Ollama → DeepSeek → 模板回退）..."):
                 from completeV6_patched import polish_report_with_llm, verify_report_fidelity
                 polished = polish_report_with_llm(template_report, r['student_id'])
-                if not polished.startswith('['):
+                if polished != template_report:
                     is_ok, checks = verify_report_fidelity(polished, r['df_results'], r['student_id'])
                     if is_ok:
                         st.success("🤖 大模型润色完成 | 保真度校验通过 ✅")
@@ -624,7 +630,7 @@ if st.session_state.diag_result:
                             if c.startswith('❌'):
                                 st.error(c)
                 else:
-                    st.warning(f"⚠️ Ollama不可用（{polished}），使用模板报告")
+                    st.warning("⚠️ 润色引擎均不可用，使用模板报告（100%保真）")
 
         # 渲染报告
         st.markdown(md_report)
