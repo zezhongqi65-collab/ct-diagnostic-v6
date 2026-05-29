@@ -25,17 +25,37 @@ import shap
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.font_manager as fm
-# v6修复2: 私有API加异常保护，避免matplotlib版本兼容性问题
+import os as _os
+import glob as _glob
+
+# ── 跨平台中文字体配置 ──────────────────────────────────────
+_CJK_CANDIDATES = [
+    'Microsoft YaHei', 'SimHei',                     # Windows
+    'WenQuanYi Zen Hei', 'WenQuanYi Micro Hei',       # Linux (apt install fonts-wqy-zenhei/microhei)
+    'Noto Sans CJK SC', 'Noto Sans SC',               # Linux (apt install fonts-noto-cjk)
+    'PingFang SC', 'Heiti SC', 'STHeiti',             # macOS
+    'AR PL UMing CN', 'AR PL UKai CN',                # Linux 备用
+]
+_CJK_FONTS = _CJK_CANDIDATES
+
+# 删除旧字体缓存，确保新安装的字体被发现
+try:
+    _cache_dir = matplotlib.get_configdir()
+    for _pat in ['fontlist*.json', 'font*']:
+        for _f in _glob.glob(_os.path.join(_cache_dir, _pat)):
+            try:
+                _os.remove(_f)
+            except Exception:
+                pass
+except Exception:
+    pass
+
+# 强制重建字体管理器
 try:
     fm._load_fontmanager(try_read_cache=False)
 except Exception:
     pass
-_CJK_FONTS = [
-    'Microsoft YaHei', 'SimHei',                # Windows
-    'WenQuanYi Zen Hei', 'WenQuanYi Micro Hei',  # Linux
-    'PingFang SC', 'Heiti SC',                   # macOS
-    'Noto Sans CJK SC', 'sans-serif',            # 通用回退
-]
+
 matplotlib.rcParams['font.sans-serif'] = _CJK_FONTS
 matplotlib.rcParams['axes.unicode_minus'] = False
 import requests

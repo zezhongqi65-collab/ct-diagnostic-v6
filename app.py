@@ -59,16 +59,9 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── 中文字体 ──────────────────────────────────────────────
+# ── 中文字体（继承completeV6_patched的跨平台配置）──────
+from completeV6_patched import _CJK_FONTS
 import matplotlib
-import matplotlib.font_manager as fm
-
-_CJK_FONTS = [
-    'Microsoft YaHei', 'SimHei',
-    'WenQuanYi Zen Hei', 'WenQuanYi Micro Hei',
-    'PingFang SC', 'Heiti SC',
-    'Noto Sans CJK SC', 'sans-serif',
-]
 matplotlib.rcParams['font.sans-serif'] = _CJK_FONTS
 matplotlib.rcParams['axes.unicode_minus'] = False
 
