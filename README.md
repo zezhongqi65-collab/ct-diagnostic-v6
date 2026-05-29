@@ -8,7 +8,7 @@
 - **三层因果诊断**：反事实分析 → SHAP×因果效应双维度矩阵 → ITE个体处理效应
 - **四分类干预建议**：✅优先干预 / ⚠️仅观察 / 💡潜在有效 / ➖无需关注
 - **批量诊断**：多学生同时诊断，汇总导出 CSV/Excel
-- **三层保真机制**：模板强制填充 → 大模型可选润色 → 自动保真度校验
+- **三层保真机制**：模板强制填充 → 润色引擎自动切换（Ollama / DeepSeek）→ 自动保真度校验
 
 ## 快速开始
 
@@ -16,10 +16,13 @@
 # 1. 安装依赖
 pip install -r requirements.txt
 
-# 2. 启动应用
+# 2. 设置 DeepSeek API Key（用于报告润色，可选）
+export DEEPSEEK_API_KEY="sk-你的密钥"
+
+# 3. 启动应用
 streamlit run app.py
 
-# 3. 可选：启动 Ollama 用于报告润色
+# 4. 可选：启动 Ollama 作为优先润色后端
 ollama serve
 ollama pull qwen:7b
 ```
@@ -69,7 +72,11 @@ ollama pull qwen:7b
 1. Fork 本仓库
 2. 在 [share.streamlit.io](https://share.streamlit.io) 连接 GitHub 并选择本仓库
 3. 设置 Main file path 为 `app.py`
-4. 部署 — `packages.txt` 会自动安装中文字体
+4. 在 Settings → Secrets 中添加 DeepSeek API Key：
+   ```toml
+   DEEPSEEK_API_KEY = "sk-你的密钥"
+   ```
+5. 部署 — `packages.txt` 会自动安装中文字体
 
 ### 本地 Docker（可选）
 
@@ -87,12 +94,15 @@ docker run -p 8501:8501 -v $(pwd):/app python:3.11-slim bash -c "
 - streamlit, pandas, numpy
 - xgboost, shap, scikit-learn
 - matplotlib, statsmodels
-- openpyxl, requests
+- openpyxl, requests, openai
 
 ## 报告保真机制
 
 1. **程序模板强制填充**（100%保真）：所有数据、分类、优先级直接来自算法输出
-2. **大模型语言润色**（可选）：Ollama 仅优化文字表达，不改变数据
+2. **润色引擎自动切换**：Ollama → DeepSeek API → 模板回退，任一可用即自动选用
+   - 优先尝试本地 Ollama（低延迟、无外网依赖）
+   - 不可用时自动切换 DeepSeek API（云端大模型）
+   - 均不可用时直接使用模板报告（保证服务不中断）
 3. **自动保真度校验**：程序核对润色后报告是否忠实于原始数据，否则自动回退
 
 *本报告基于可解释AI分析，仅供参考，不构成教育决策的唯一依据。*
