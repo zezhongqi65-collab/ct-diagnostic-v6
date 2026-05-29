@@ -64,6 +64,11 @@ import matplotlib
 matplotlib.rcParams['font.sans-serif'] = _CJK_FONTS
 matplotlib.rcParams['axes.unicode_minus'] = False
 
+# ── 同步 Streamlit Secrets 到环境变量（供 completeV6_patched 使用）─
+import os as _os
+if "DEEPSEEK_API_KEY" in st.secrets:
+    _os.environ["DEEPSEEK_API_KEY"] = st.secrets["DEEPSEEK_API_KEY"]
+
 # ── 会话状态初始化 ─────────────────────────────────────────
 
 DEFAULT_STATE = {
@@ -172,7 +177,7 @@ with st.sidebar:
             else:
                 st.caption("🔴 Ollama 未连接")
         with col_b:
-            deepseek_key = _os.environ.get("DEEPSEEK_API_KEY", "")
+            deepseek_key = _os.environ.get("DEEPSEEK_API_KEY") or st.secrets.get("DEEPSEEK_API_KEY", "")
             if deepseek_key:
                 masked = deepseek_key[:6] + "****" + deepseek_key[-4:]
                 st.success(f"🟢 DeepSeek: {masked}")
