@@ -514,9 +514,10 @@ if st.session_state.diag_result:
 
     # ── Tab切换三层结果 ──
 
-    tab1, tab2, tab3, tab4 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "🔮 Layer 1 反事实分析",
         "🎯 Layer 2 双维度诊断",
+        "🔬 Layer 3 ITE 个体处理效应",
         "📝 综合报告",
         "📄 代码评估详情",
     ])
@@ -585,8 +586,26 @@ if st.session_state.diag_result:
         st.markdown("---")
         st.caption(f"自适应阈值 — SHAP: {r['shap_threshold']:.3f} | 因果效应: {r['ce_threshold']:.1f}分（基于训练集分布自动计算）")
 
-    # ── 综合报告 ──
+    # ── Layer 3 ITE ──
     with tab3:
+        st.markdown("### 🔬 Layer 3: ITE 个体处理效应估计")
+        st.info(
+            "Layer 3 需要教师提供前测/后测实验数据（实验组+对照组）。"
+            "如需使用此功能，请准备包含 `抽象、分解、算法设计、建模、评估、T（干预标记）、Y（成绩变化）` 列的CSV文件。"
+        )
+        with st.expander("📋 查看数据收集模板"):
+            st.markdown("""
+            | 阶段 | 操作 |
+            |------|------|
+            | **前测（第0周）** | 计算思维量表 → 5维度分数 X |
+            | **随机分组** | 实验组接受干预 / 对照组正常上课 |
+            | **干预（第1-4周）** | 针对性训练，记录出勤 |
+            | **后测（第5周）** | 再次测量 → post_Y |
+            | **数据列** | T=1(实验)/0(对照), Y=post-baseline |
+            """)
+
+    # ── 综合报告 ──
+    with tab4:
         st.markdown("### 📝 综合诊断报告")
 
         # 生成报告
@@ -636,7 +655,7 @@ if st.session_state.diag_result:
             )
 
     # ── 代码评估详情 ──
-    with tab4:
+    with tab5:
         if 'eval_result' in r and r['eval_result'] is not None:
             eval_r = r['eval_result']
             st.markdown("### 🔬 源代码AST分析详情")
@@ -654,24 +673,6 @@ if st.session_state.diag_result:
                                 st.caption(f"  • {ev}")
         else:
             st.info("当前为量表输入模式，无代码评估详情。切换到代码输入模式可查看AST分析。")
-
-    # Layer 3 ITE 提示
-    st.markdown("---")
-    st.markdown("### 🔬 Layer 3: ITE 个体处理效应估计")
-    st.info(
-        "Layer 3 需要教师提供前测/后测实验数据（实验组+对照组）。"
-        "如需使用此功能，请准备包含 `抽象、分解、算法设计、建模、评估、T（干预标记）、Y（成绩变化）` 列的CSV文件。"
-    )
-    with st.expander("📋 查看数据收集模板"):
-        st.markdown("""
-        | 阶段 | 操作 |
-        |------|------|
-        | **前测（第0周）** | 计算思维量表 → 5维度分数 X |
-        | **随机分组** | 实验组接受干预 / 对照组正常上课 |
-        | **干预（第1-4周）** | 针对性训练，记录出勤 |
-        | **后测（第5周）** | 再次测量 → post_Y |
-        | **数据列** | T=1(实验)/0(对照), Y=post-baseline |
-        """)
 
 
 # ═══════════════════════════════════════════════════════════

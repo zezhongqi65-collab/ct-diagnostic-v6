@@ -342,6 +342,20 @@ def layer2_dual_diagnosis(model, student, df_all, student_id, X_train):
 
 def plot_dual_diagnosis(student, sv, ce_dict, student_id, shap_threshold, ce_threshold, save_path=None):
     fig, ax = plt.subplots(figsize=(10, 7))
+
+    # 显式获取中文字体路径，确保散点图中所有中文正常渲染
+    _cjk_prop = None
+    for _name in _CJK_FONTS:
+        try:
+            _path = fm.findfont(_name, fallback_to_default=False)
+            if _path and _path != _name:  # findfont returns the name itself on failure
+                _cjk_prop = fm.FontProperties(fname=_path)
+                break
+        except Exception:
+            continue
+    if _cjk_prop is None:
+        _cjk_prop = fm.FontProperties()
+
     features = CAUSAL_ORDER
     colors_map = {'✅': '#2ECC71', '⚠️': '#F39C12', '💡': '#3498DB', '➖': '#95A5A6'}
     labels_map = {'✅': '优先干预', '⚠️': '仅观察', '💡': '潜在有效', '➖': '无需关注'}
@@ -357,12 +371,14 @@ def plot_dual_diagnosis(student, sv, ce_dict, student_id, shap_threshold, ce_thr
         else:
             color, size = colors_map['➖'], 150
         ax.scatter(s, c, s=size, color=color, alpha=0.8, edgecolors='white', linewidth=2, zorder=3)
-        ax.annotate(DIM_NAMES[feat], (s, c), textcoords="offset points", xytext=(10, 5), fontsize=11)
+        ax.annotate(DIM_NAMES[feat], (s, c), textcoords="offset points", xytext=(10, 5),
+                    fontsize=11, fontproperties=_cjk_prop)
     ax.axhline(y=ce_threshold, color='gray', linestyle='--', alpha=0.5)
     ax.axvline(x=shap_threshold, color='gray', linestyle='--', alpha=0.5)
-    ax.set_xlabel('|SHAP值|（模型归因重要性）', fontsize=13)
-    ax.set_ylabel('因果效应（分）', fontsize=13)
-    ax.set_title(f'{student_id} 双维度诊断散点图（SHAP × 因果效应）\n阈值基于训练集自适应计算', fontsize=13, fontweight='bold')
+    ax.set_xlabel('|SHAP值|（模型归因重要性）', fontsize=13, fontproperties=_cjk_prop)
+    ax.set_ylabel('因果效应（分）', fontsize=13, fontproperties=_cjk_prop)
+    ax.set_title(f'{student_id} 双维度诊断散点图（SHAP × 因果效应）\n阈值基于训练集自适应计算',
+                 fontsize=13, fontweight='bold', fontproperties=_cjk_prop)
     from matplotlib.patches import Patch
     legend_elements = [
         Patch(facecolor=colors_map['✅'], label=f"{labels_map['✅']}"),
@@ -370,13 +386,13 @@ def plot_dual_diagnosis(student, sv, ce_dict, student_id, shap_threshold, ce_thr
         Patch(facecolor=colors_map['💡'], label=f"{labels_map['💡']}"),
         Patch(facecolor=colors_map['➖'], label=f"{labels_map['➖']}"),
     ]
-    ax.legend(handles=legend_elements, loc='upper left', fontsize=11)
+    ax.legend(handles=legend_elements, loc='upper left', fontsize=11, prop=_cjk_prop)
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
         print(f"图表已保存: {save_path}")
-        plt.close(fig)  # 保存后关闭图形，避免在批量处理时内存泄漏
+        plt.close(fig)
     else:
         plt.show()
     return fig
