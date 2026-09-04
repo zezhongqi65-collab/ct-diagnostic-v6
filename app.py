@@ -195,6 +195,17 @@ with st.sidebar:
     batch_mode = st.checkbox("📦 批量诊断模式", help="上传包含多个学生的数据进行批量诊断")
 
     st.markdown("---")
+
+    # 干预出题入口提示
+    st.markdown("### 📚 干预出题")
+    st.markdown("按薄弱维度生成个性化思维训练题单（Word，可打印）。")
+    has_any_diag = bool(st.session_state.diag_result) or bool(st.session_state.batch_results)
+    if has_any_diag:
+        st.success("✅ 已有诊断结果，页面底部可生成题单")
+    else:
+        st.caption("🔴 请先完成单个或批量诊断")
+
+    st.markdown("---")
     st.caption("v6.1 — 润色引擎自动切换（Ollama / DeepSeek）")
     st.caption("模板填充 + 大模型润色 + 自动校验")
 
@@ -685,28 +696,52 @@ if st.session_state.diag_result:
 
 
 # ═══════════════════════════════════════════════════════════
-# 干预出题（基于批量诊断结果，按薄弱维度分组）
+# 干预出题（支持单个学生与批量，按薄弱维度分组）
 # ═══════════════════════════════════════════════════════════
 
-if st.session_state.batch_results:
-    st.markdown("---")
-    st.header("📚 生成干预题单")
-    st.markdown(
-        "根据批量诊断结果，按薄弱维度分组，生成可打印的个性化思维训练题单（Word）。"
-        "题目为不插电思维训练题，适合纸笔作答、无需电脑。"
+st.markdown("---")
+st.header("📚 生成干预题单")
+st.markdown(
+    "基于诊断结果，按薄弱维度分组，生成可打印的个性化思维训练题单（Word）。"
+    "题目为不插电思维训练题，适合纸笔作答、无需电脑。"
+)
+
+has_batch = bool(st.session_state.batch_results)
+has_single = bool(st.session_state.diag_result)
+
+if not has_batch and not has_single:
+    st.info("🔍 尚无诊断结果。请先在左侧选择输入模式，完成「单个学生诊断」或「批量诊断」，再回到这里生成题单。")
+else:
+    # 数据源选择（单个 / 批量）
+    source_options = []
+    if has_batch:
+        source_options.append("批量诊断结果")
+    if has_single:
+        source_options.append("当前单个学生")
+
+    if len(source_options) > 1:
+        source = st.radio("出题数据源", source_options, horizontal=True, key="intervention_source")
+    else:
+        source = source_options[0]
+
+    diagnosis_results = (
+        st.session_state.batch_results
+        if source == "批量诊断结果"
+        else [st.session_state.diag_result]
     )
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        week = st.number_input("第几周", min_value=1, max_value=20, value=1)
+        week = st.number_input("第几周", min_value=1, max_value=20, value=1, key="intervention_week")
     with col2:
         use_llm_variant = st.checkbox(
             "用 DeepSeek 生成题目变式",
             value=False,
+            key="intervention_use_llm",
             help="开启后为母题生成变式（换数字/情境）扩充题量；DeepSeek 不可用时自动回退母题。",
         )
     with col3:
-        n_questions = st.slider("每份题单题数", 3, 8, 5)
+        n_questions = st.slider("每份题单题数", 3, 8, 5, key="intervention_n_questions")
 
     if use_llm_variant:
         import os as _os
@@ -718,7 +753,7 @@ if st.session_state.batch_results:
         with st.spinner("正在生成思维训练题单..."):
             bank = load_question_bank()
             paths = generate_intervention_package(
-                st.session_state.batch_results,
+                diagnosis_results,
                 week=week,
                 use_llm=use_llm_variant,
                 questions_per_sheet=n_questions,
@@ -735,7 +770,7 @@ if st.session_state.batch_results:
                         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     )
         else:
-            st.warning("未生成题单，请先完成批量诊断。")
+            st.warning("未生成题单，请先完成诊断。")
 
 
 # ═══════════════════════════════════════════════════════════
