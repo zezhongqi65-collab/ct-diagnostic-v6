@@ -166,6 +166,19 @@ with st.sidebar:
 
     st.markdown("---")
 
+    # API Key 配置（用户可输入自己的 key，优先于部署者配置）
+    st.markdown("### 🔑 DeepSeek API Key（可选）")
+    user_api_key = st.text_input(
+        "输入你的 API Key",
+        type="password",
+        value="",
+        help="输入你自己的 DeepSeek API Key 后，报告润色与题目变式将优先使用你的 key，避免消耗部署者额度。留空则使用系统默认配置（如有）。",
+    )
+    if user_api_key.strip():
+        os.environ["DEEPSEEK_API_KEY"] = user_api_key.strip()
+
+    st.markdown("---")
+
     # 润色引擎配置
     st.markdown("### 🤖 大模型润色（可选）")
     use_polish = st.checkbox(

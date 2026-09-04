@@ -189,9 +189,10 @@ def select_questions(dim: str, count: int, use_llm: bool,
 def _set_cjk_font(doc) -> None:
     """设置 Word 默认字体为中文字体（宋体）。"""
     from docx.oxml.ns import qn
+    from docx.shared import Pt
     style = doc.styles['Normal']
     style.font.name = '宋体'
-    style.font.size = 12
+    style.font.size = Pt(12)
     style.element.rPr.rFonts.set(qn('w:eastAsia'), '宋体')
 
 
