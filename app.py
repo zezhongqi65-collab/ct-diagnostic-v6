@@ -69,10 +69,8 @@ import matplotlib
 matplotlib.rcParams['font.sans-serif'] = _CJK_FONTS
 matplotlib.rcParams['axes.unicode_minus'] = False
 
-# ── 同步 Streamlit Secrets 到环境变量（供 completeV6_patched 使用）─
-import os as _os
-if "DEEPSEEK_API_KEY" in st.secrets:
-    _os.environ["DEEPSEEK_API_KEY"] = st.secrets["DEEPSEEK_API_KEY"]
+# ── DeepSeek API Key 由教师在侧边栏自行输入，不再从 st.secrets 自动同步 ──
+# 这样每位教师使用自己的 key，避免消耗部署者额度。
 
 # ── 会话状态初始化 ─────────────────────────────────────────
 
