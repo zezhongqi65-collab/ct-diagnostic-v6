@@ -171,10 +171,10 @@ with st.sidebar:
     user_api_key = st.text_input(
         "输入你的 API Key",
         type="password",
-        value="",
+        key="user_api_key",
         help="输入你自己的 DeepSeek API Key 后，报告润色与题目变式将优先使用你的 key，避免消耗部署者额度。留空则使用系统默认配置（如有）。",
     )
-    if user_api_key.strip():
+    if user_api_key and user_api_key.strip():
         os.environ["DEEPSEEK_API_KEY"] = user_api_key.strip()
 
     st.markdown("---")
