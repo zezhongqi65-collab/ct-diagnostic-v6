@@ -40,6 +40,11 @@ from utils.report import (
     markdown_download_link,
 )
 
+from utils.intervention import (
+    generate_intervention_package,
+    load_question_bank,
+)
+
 from completeV6_patched import (
     plot_dual_diagnosis,
     generate_report_template,
@@ -677,6 +682,60 @@ if st.session_state.diag_result:
                                 st.caption(f"  • {ev}")
         else:
             st.info("当前为量表输入模式，无代码评估详情。切换到代码输入模式可查看AST分析。")
+
+
+# ═══════════════════════════════════════════════════════════
+# 干预出题（基于批量诊断结果，按薄弱维度分组）
+# ═══════════════════════════════════════════════════════════
+
+if st.session_state.batch_results:
+    st.markdown("---")
+    st.header("📚 生成干预题单")
+    st.markdown(
+        "根据批量诊断结果，按薄弱维度分组，生成可打印的个性化思维训练题单（Word）。"
+        "题目为不插电思维训练题，适合纸笔作答、无需电脑。"
+    )
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        week = st.number_input("第几周", min_value=1, max_value=20, value=1)
+    with col2:
+        use_llm_variant = st.checkbox(
+            "用 DeepSeek 生成题目变式",
+            value=False,
+            help="开启后为母题生成变式（换数字/情境）扩充题量；DeepSeek 不可用时自动回退母题。",
+        )
+    with col3:
+        n_questions = st.slider("每份题单题数", 3, 8, 5)
+
+    if use_llm_variant:
+        import os as _os
+        deepseek_key = _os.environ.get("DEEPSEEK_API_KEY") or st.secrets.get("DEEPSEEK_API_KEY", "")
+        if not deepseek_key:
+            st.warning("⚠️ 未检测到 DEEPSEEK_API_KEY，将自动回退到预置母题。")
+
+    if st.button("🎯 生成题单", type="primary", use_container_width=True):
+        with st.spinner("正在生成思维训练题单..."):
+            bank = load_question_bank()
+            paths = generate_intervention_package(
+                st.session_state.batch_results,
+                week=week,
+                use_llm=use_llm_variant,
+                questions_per_sheet=n_questions,
+                bank=bank,
+            )
+        if paths:
+            st.success(f"已生成 {len(paths)} 份题单")
+            for p in paths:
+                with open(p, "rb") as f:
+                    st.download_button(
+                        f"📥 下载 {Path(p).name}",
+                        f.read(),
+                        Path(p).name,
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    )
+        else:
+            st.warning("未生成题单，请先完成批量诊断。")
 
 
 # ═══════════════════════════════════════════════════════════
