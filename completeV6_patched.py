@@ -88,6 +88,10 @@ DIM_NAMES = {
     '评估': '方案评估与调试',
 }
 OLLAMA_MODEL = "qwen:7b"
+# 提升空间阈值：提升空间不足半格（得分≥4.5）视为「无需干预」
+MIN_HEADROOM = 0.5
+# CE 估计隐含的得分跨度（高分组≥4 与低分组<3 的典型得分差，约 2 分）
+CE_SPAN = 2.0
 
 
 # ============================================
@@ -326,35 +330,45 @@ def layer2_dual_diagnosis(model, student, df_all, student_id, X_train):
     for i, feat in enumerate(features):
         shap_val = sv[i]
         ce_val = ce_dict[feat]
-        shap_high = abs(shap_val) > shap_threshold
-        ce_positive = ce_val > ce_threshold
-        if shap_high and ce_positive:
-            tag = '✅ 优先干预'
-            action = f"立即安排{DIM_NAMES[feat]}专项训练（预计提升{ce_val:.1f}分）"
-        elif shap_high and not ce_positive:
-            tag = '⚠️ 仅观察'
-            root = trace_root_cause(feat, student, DAG_EDGES)
-            if root:
-                action = f"SHAP显示重要但单独干预无效。根因可能在「{','.join([DIM_NAMES[r] for r in root])}」，建议先练根因维度"
-            else:
-                action = "SHAP显示重要但干预无效，可能受其他未测量因素影响"
-        elif not shap_high and ce_positive:
-            tag = '💡 潜在有效'
-            action = f"模型未识别但干预可能有效，作为二级备选方案（预计提升{ce_val:.1f}分）"
-        else:
+        score = student[feat]
+        # 提升空间（满分提升空间为 0）
+        headroom = max(0.0, 5.0 - float(score))
+        # 个体化因果效应：群体 CE 调制为该个体的实际预期收益
+        ce_ind = ce_val * headroom / CE_SPAN
+        # 提升空间不足半格：接近满分，无论 SHAP/CE 如何都无需干预
+        if headroom < MIN_HEADROOM:
             tag = '➖ 无需关注'
-            action = "当前维度正常"
+            action = f"该维度已接近满分（{score:.1f}/5），提升空间有限，无需干预"
+        else:
+            shap_high = abs(shap_val) > shap_threshold
+            ce_positive = ce_ind > ce_threshold
+            if shap_high and ce_positive:
+                tag = '✅ 优先干预'
+                action = f"立即安排{DIM_NAMES[feat]}专项训练（预计提升{ce_ind:.1f}分）"
+            elif shap_high and not ce_positive:
+                tag = '⚠️ 仅观察'
+                root = trace_root_cause(feat, student, DAG_EDGES)
+                if root:
+                    action = f"SHAP显示重要但单独干预无效。根因可能在「{','.join([DIM_NAMES[r] for r in root])}」，建议先练根因维度"
+                else:
+                    action = "SHAP显示重要但干预无效，可能受其他未测量因素影响"
+            elif not shap_high and ce_positive:
+                tag = '💡 潜在有效'
+                action = f"模型未识别但干预可能有效，作为二级备选方案（预计提升{ce_ind:.1f}分）"
+            else:
+                tag = '➖ 无需关注'
+                action = "当前维度正常"
         categories[tag.split()[0]] = categories.get(tag.split()[0], []) + [feat]
         report.append(f"\n【{DIM_NAMES[feat]}】")
-        report.append(f"  得分: {student[feat]:.1f}/5 | SHAP: {shap_val:+.3f} | 因果效应: +{ce_val:.1f}分")
+        report.append(f"  得分: {score:.1f}/5 | SHAP: {shap_val:+.3f} | 个体化效应: +{ce_ind:.1f}分")
         report.append(f"  分类: {tag}")
         report.append(f"  建议: {action}")
         results_list.append({
-            '维度': feat, 
-            '得分': student[feat], 
-            'SHAP': shap_val, 
-            '因果效应': ce_val, 
-            '分类': tag, 
+            '维度': feat,
+            '得分': score,
+            'SHAP': shap_val,
+            '因果效应': ce_ind,
+            '分类': tag,
             '建议': action,
             '优先级': 0 if tag.startswith('✅') else (1 if tag.startswith('⚠️') else (2 if tag.startswith('💡') else 3))
         })
