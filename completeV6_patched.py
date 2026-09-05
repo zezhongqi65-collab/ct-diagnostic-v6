@@ -90,8 +90,6 @@ DIM_NAMES = {
 OLLAMA_MODEL = "qwen:7b"
 # 提升空间阈值：提升空间不足半格（得分≥4.5）视为「无需干预」
 MIN_HEADROOM = 0.5
-# CE 估计隐含的得分跨度（高分组≥4 与低分组<3 的典型得分差，约 2 分）
-CE_SPAN = 2.0
 
 
 # ============================================
@@ -257,39 +255,46 @@ def layer1_counterfactual(model, student, student_id):
 # ============================================
 
 def backdoor_causal_effect(df, treatment, outcome, confounders=None):
+    """估计 treatment 对 outcome 的因果效应（统一为「每 1 分」的边际效应）。
+
+    - 优先使用 statsmodels OLS 线性回归（回归系数本身即每 1 分的边际效应）
+    - OLS 失败时回退到分组比较（高分组≥4 vs 低分组<3），并按得分跨度归一化到每 1 分
+    - p>0.05 时不直接归零，改为 ×0.3 衰减，保留信息
     """
-    因果效应估计（后门调整）:
-    - 优先使用statsmodels.OLS线性回归调整
-    - p>0.05时不直接归零，改为ATE×0.3衰减，保留信息
-    - confounders为空时自动回退到分组比较
-    - OLS失败时自动回退到分组比较
-    """
+    # OLS 路径：回归系数是「每 1 分」的边际效应
     if sm is not None and confounders and len(confounders) > 0:
         formula = f"{outcome} ~ {treatment} + " + " + ".join(confounders)
         try:
             fit = sm.OLS.from_formula(formula, data=df).fit()
             ate = fit.params[treatment]
             p_value = fit.pvalues[treatment]
-            # p>0.05时衰减为30%，保留信息而非直接归零
             if p_value > 0.05:
-                ate_attenuated = ate * 0.3
-                return ate_attenuated
+                return ate * 0.3
             return ate
         except Exception:
             pass
-    # 回退方案：分组比较
+
+    # 分组比较路径：按得分跨度归一化到「每 1 分」
+    def _group_effect(data):
+        high = data[data[treatment] >= 4]
+        low = data[data[treatment] < 3]
+        if len(high) <= 2 or len(low) <= 2:
+            return None
+        span = high[treatment].mean() - low[treatment].mean()
+        if span <= 0:
+            return None
+        return (high[outcome].mean() - low[outcome].mean()) / span
+
     if confounders and len(confounders) > 0:
         effects = []
         for _, group in df.groupby(confounders):
-            high = group[group[treatment] >= 4][outcome]
-            low = group[group[treatment] < 3][outcome]
-            if len(high) > 2 and len(low) > 2:
-                effects.append(high.mean() - low.mean())
-        return np.mean(effects) if effects else 0.0
-    else:
-        high = df[df[treatment] >= 4][outcome]
-        low = df[df[treatment] < 3][outcome]
-        return (high.mean() - low.mean()) if len(high) > 2 and len(low) > 2 else 0.0
+            effect = _group_effect(group)
+            if effect is not None:
+                effects.append(effect)
+        return float(np.mean(effects)) if effects else 0.0
+
+    effect = _group_effect(df)
+    return float(effect) if effect is not None else 0.0
 
 
 def estimate_all_causal_effects(df):
@@ -333,8 +338,8 @@ def layer2_dual_diagnosis(model, student, df_all, student_id, X_train):
         score = student[feat]
         # 提升空间（满分提升空间为 0）
         headroom = max(0.0, 5.0 - float(score))
-        # 个体化因果效应：群体 CE 调制为该个体的实际预期收益
-        ce_ind = ce_val * headroom / CE_SPAN
+        # 个体化因果效应：CE 已是「每 1 分」的边际效应，× 提升空间 = 个体预期收益
+        ce_ind = ce_val * headroom
         # 提升空间不足半格：接近满分，无论 SHAP/CE 如何都无需干预
         if headroom < MIN_HEADROOM:
             tag = '➖ 无需关注'
