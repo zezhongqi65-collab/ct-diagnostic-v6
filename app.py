@@ -42,8 +42,10 @@ from utils.report import (
 
 from utils.intervention import (
     generate_intervention_package,
+    generate_student_packets,
     group_students_by_dim,
     load_question_bank,
+    reset_history,
 )
 
 from completeV6_patched import (
@@ -724,6 +726,16 @@ has_single = bool(st.session_state.diag_result)
 if not has_batch and not has_single:
     st.info("🔍 尚无诊断结果。请先在左侧选择输入模式，完成「单个学生诊断」或「批量诊断」，再回到这里生成题单。")
 else:
+    # 出题模式选择
+    mode = st.radio(
+        "出题模式",
+        ["一人一单（个性化，推荐）", "按维度共享题单"],
+        horizontal=True,
+        key="intervention_mode",
+        help="一人一单：每个学生一张题单（含其薄弱维度）；按维度：同一薄弱维度的学生做同一套题。",
+    )
+    is_pkt = mode.startswith("一人一单")
+
     # 数据源选择（单个 / 批量）
     source_options = []
     if has_batch:
@@ -745,17 +757,24 @@ else:
     col1, col2, col3 = st.columns(3)
     with col1:
         week = st.number_input("第几周", min_value=1, max_value=20, value=1, key="intervention_week")
+    use_llm_variant = False
     with col2:
-        use_llm_variant = st.checkbox(
-            "用 DeepSeek 生成题目变式",
-            value=False,
-            key="intervention_use_llm",
-            help="开启后为母题生成变式（换数字/情境）扩充题量；DeepSeek 不可用时自动回退母题。",
-        )
+        if is_pkt:
+            max_dims = st.slider(
+                "每人每周最多练几维", 1, 3, 2, key="intervention_max_dims",
+                help="优先干预维度里取排序最靠前的这几个维度。",
+            )
+        else:
+            use_llm_variant = st.checkbox(
+                "用 DeepSeek 生成题目变式",
+                value=False,
+                key="intervention_use_llm",
+                help="开启后为母题生成变式（换数字/情境）扩充题量；DeepSeek 不可用时自动回退母题。",
+            )
     with col3:
         n_questions = st.slider(
-            "每份题单题数", 3, 10, 5, key="intervention_n_questions",
-            help="题库每维度预置 10 道母题，超过 10 道会循环重复。",
+            "每维题数", 3, 15, 10, key="intervention_n_questions",
+            help="题库每维度预置 30 道母题，跨周自动去重、不重复。",
         )
 
     if use_llm_variant:
@@ -764,58 +783,97 @@ else:
         if not deepseek_key:
             st.warning("⚠️ 未检测到 DEEPSEEK_API_KEY，将自动回退到预置母题。")
 
-    # 批量模式：展示学生分组结果 + 下载分发清单
-    if source == "批量诊断结果":
-        groups = group_students_by_dim(diagnosis_results)
-        st.markdown("---")
-        st.subheader("📋 学生分组结果（谁做哪套题）")
-        st.caption("按最优先的薄弱维度自动分组，同一组学生做同一套题。")
-        group_df = pd.DataFrame([
-            {
-                '训练维度': (dim if dim == '综合' else DIM_NAMES.get(dim, dim)),
-                '学生数': len(students),
-                '学生名单': '、'.join(students),
-            }
-            for dim, students in groups.items()
-        ])
-        st.dataframe(group_df, hide_index=True)
+    # 清空历史（两种模式共用）
+    if st.button("🧹 清空出题历史（新学期重新开始）", key="reset_history_btn"):
+        reset_history()
+        st.success("已清空出题历史。")
 
-        dist_rows = [
-            {'学生ID': sid, '训练维度': dim, '题单': f'第{week}周_{dim}训练题单.docx'}
-            for dim, students in groups.items()
-            for sid in students
-        ]
-        if dist_rows:
-            st.download_button(
-                "📥 下载分发清单（CSV）",
-                pd.DataFrame(dist_rows).to_csv(index=False).encode('utf-8-sig'),
-                f'分发清单_第{week}周.csv',
-                'text/csv',
-                key='distribution_download',
-            )
-
-    if st.button("🎯 生成题单", type="primary", width='stretch'):
-        with st.spinner("正在生成思维训练题单..."):
-            bank = load_question_bank()
-            paths = generate_intervention_package(
-                diagnosis_results,
-                week=week,
-                use_llm=use_llm_variant,
-                questions_per_sheet=n_questions,
-                bank=bank,
-            )
-        if paths:
-            st.success(f"已生成 {len(paths)} 份题单")
-            for p in paths:
-                with open(p, "rb") as f:
+    if is_pkt:
+        # ── 一人一单 ──
+        if st.button("🎯 生成个人题单", type="primary", width='stretch', key="gen_pkt_btn"):
+            with st.spinner("正在生成个人题单..."):
+                bank = load_question_bank()
+                path, dist_rows = generate_student_packets(
+                    diagnosis_results,
+                    week=week,
+                    questions_per_dim=n_questions,
+                    max_dims=max_dims,
+                    bank=bank,
+                )
+            if dist_rows:
+                st.success(f"已生成 {len(dist_rows)} 名学生的个人题单")
+                st.subheader("📋 分发清单（谁练什么维度）")
+                st.dataframe(pd.DataFrame(dist_rows), hide_index=True)
+                st.download_button(
+                    "📥 下载分发清单（CSV）",
+                    pd.DataFrame(dist_rows).to_csv(index=False).encode('utf-8-sig'),
+                    f'分发清单_第{week}周.csv',
+                    'text/csv',
+                    key='pkt_dist_download',
+                )
+                with open(path, "rb") as f:
                     st.download_button(
-                        f"📥 下载 {Path(p).name}",
+                        f"📥 下载合并题单（{Path(path).name}）",
                         f.read(),
-                        Path(p).name,
+                        Path(path).name,
                         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        key='pkt_doc_download',
                     )
-        else:
-            st.warning("未生成题单，请先完成诊断。")
+            else:
+                st.warning("没有生成题单：诊断结果里没有含「优先干预」维度的学生。")
+    else:
+        # ── 按维度共享题单 ──
+        if source == "批量诊断结果":
+            groups = group_students_by_dim(diagnosis_results)
+            st.markdown("---")
+            st.subheader("📋 学生分组结果（谁做哪套题）")
+            st.caption("按最优先的薄弱维度自动分组，同一组学生做同一套题。")
+            group_df = pd.DataFrame([
+                {
+                    '训练维度': (dim if dim == '综合' else DIM_NAMES.get(dim, dim)),
+                    '学生数': len(students),
+                    '学生名单': '、'.join(students),
+                }
+                for dim, students in groups.items()
+            ])
+            st.dataframe(group_df, hide_index=True)
+
+            dist_rows = [
+                {'学生ID': sid, '训练维度': dim, '题单': f'第{week}周_{dim}训练题单.docx'}
+                for dim, students in groups.items()
+                for sid in students
+            ]
+            if dist_rows:
+                st.download_button(
+                    "📥 下载分发清单（CSV）",
+                    pd.DataFrame(dist_rows).to_csv(index=False).encode('utf-8-sig'),
+                    f'分发清单_第{week}周.csv',
+                    'text/csv',
+                    key='distribution_download',
+                )
+
+        if st.button("🎯 生成题单", type="primary", width='stretch', key="gen_dim_btn"):
+            with st.spinner("正在生成思维训练题单..."):
+                bank = load_question_bank()
+                paths = generate_intervention_package(
+                    diagnosis_results,
+                    week=week,
+                    use_llm=use_llm_variant,
+                    questions_per_sheet=n_questions,
+                    bank=bank,
+                )
+            if paths:
+                st.success(f"已生成 {len(paths)} 份题单")
+                for p in paths:
+                    with open(p, "rb") as f:
+                        st.download_button(
+                            f"📥 下载 {Path(p).name}",
+                            f.read(),
+                            Path(p).name,
+                            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        )
+            else:
+                st.warning("未生成题单，请先完成诊断。")
 
 
 # ═══════════════════════════════════════════════════════════

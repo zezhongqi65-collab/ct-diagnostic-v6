@@ -385,11 +385,11 @@ textarea{resize:vertical;min-height:230px;font-family:ui-monospace,Consolas,mono
             <div class="upload-zone" id="uploadZone" tabindex="0" role="button" aria-label="上传 Excel 或 CSV 文件">
               <svg viewBox="0 0 24 24"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16"/></svg>
               <div class="uz-main">点击选择，或把 Excel / CSV 文件拖到这里</div>
-              <div class="uz-sub">支持 .xlsx 与 .csv；表头需含「学生编号、抽象、分解、算法设计、建模、评估」，列顺序可不同、允许夹杂其他列。旧版 .xls 请先在 Excel 另存为 .xlsx。</div>
+              <div class="uz-sub">支持 .xlsx 与 .csv；表头需含「学生编号、抽象、分解、算法设计、建模、评估」，可另加「姓名」「班级」列（用于分发清单），列顺序可不同、允许夹杂其他列。旧版 .xls 请先在 Excel 另存为 .xlsx。</div>
               <input type="file" id="fileInput" accept=".xlsx,.csv" hidden>
             </div>
             <div id="fileStatus" class="file-status"></div>
-            <p class="muted" style="margin:12px 0 8px">也可直接粘贴：首行表头，逗号 / 制表符分隔，五维取值 1–5。上传后内容会回填到此处，可核对、修改后再诊断。</p>
+            <p class="muted" style="margin:12px 0 8px">也可直接粘贴：首行表头，逗号 / 制表符分隔，五维取值 1–5，可另加「姓名」「班级」列。上传后内容会回填到此处，可核对、修改后再诊断。</p>
             <textarea id="batchInput" placeholder="学生编号,抽象,分解,算法设计,建模,评估&#10;S001,2,2,3,2,3&#10;S002,4,4,3,4,4"></textarea>
             <div class="toolbar" style="margin:12px 0 0">
               <button class="btn primary" id="runBatch">开始批量诊断</button>
@@ -426,10 +426,48 @@ textarea{resize:vertical;min-height:230px;font-family:ui-monospace,Consolas,mono
       <div class="page-head">
         <div class="eyebrow">Intervention Sheet</div>
         <h2>个性化思维训练题单</h2>
-        <p>题库内置 50 道不插电母题（五维各 10 道，纸笔可做、无需电脑）。按需要训练的维度抽题，生成可打印题单，末页附教师参考答案。</p>
+        <p>题库内置 150 道不插电母题（五维各 30 道，纸笔可做、无需电脑，难度按结构属性分 1–3 星）。系统自动记录已发过的题，<b>跨周不重复</b>；题库不足时会明确提示。</p>
       </div>
       <div class="card" style="margin-bottom:16px">
-        <div class="card-h"><h3>出题设置</h3></div>
+        <div class="card-h"><h3>一人一单（推荐）：按诊断结果自动组卷</h3></div>
+        <div class="card-b">
+          <p class="muted" style="margin:0 0 12px">先到「批量诊断」跑完诊断，再点这里：系统按每名学生的薄弱维度（优先干预，每周每人最多 N 维）自动生成个人题单，并给出分发清单，老师照单发放即可。</p>
+          <div class="sheet-controls">
+            <div>
+              <label class="flabel">每维题数</label>
+              <select id="pktCount"><option>5</option><option selected>10</option><option>15</option></select>
+            </div>
+            <div>
+              <label class="flabel">周次</label>
+              <select id="pktWeek"></select>
+            </div>
+            <div>
+              <label class="flabel">每人每周最多练几维</label>
+              <select id="pktMaxDims"><option value="1">1 维</option><option value="2" selected>2 维</option><option value="3">3 维</option></select>
+            </div>
+            <div>
+              <label class="flabel">最高难度（1易–3难）</label>
+              <select id="pktDiff"><option value="3" selected>不限</option><option value="1">仅 1 星</option><option value="2">2 星以内</option></select>
+            </div>
+          </div>
+          <div class="toolbar" style="margin:12px 0 0">
+            <button class="btn primary" id="genPkt">生成个人题单</button>
+            <button class="btn" id="printPkt">打印全部题单</button>
+            <button class="btn" id="dlPktList">导出分发清单 CSV</button>
+          </div>
+        </div>
+      </div>
+      <div id="pktEmpty" class="empty">
+        <svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M9 12h6M9 16h6"/></svg>
+        <div>先到「批量诊断」完成诊断，再回来一键生成每人一份的题单</div>
+      </div>
+      <div id="pktResult" style="display:none">
+        <div id="pktList"></div>
+        <div id="pktArea" class="print-area"></div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-h"><h3>手动按维度出题（备用）</h3></div>
         <div class="card-b">
           <div class="sheet-controls">
             <div>
@@ -452,7 +490,9 @@ textarea{resize:vertical;min-height:230px;font-family:ui-monospace,Consolas,mono
           <div class="toolbar" style="margin-bottom:0">
             <button class="btn primary" id="genSheet">生成题单</button>
             <button class="btn" id="printSheet">打印题单</button>
+            <button class="btn" id="resetSheet" style="margin-left:auto">清空出题历史</button>
           </div>
+          <div style="margin-top:8px;font-size:12px;color:var(--muted)">已发过的题会跨周自动跳过；「清空出题历史」用于新学期或重新开始一轮干预。</div>
         </div>
       </div>
       <div id="sheetEmpty" class="empty">
@@ -586,65 +626,7 @@ const CAT={priority:{key:'priority',label:'优先干预',cls:'k-priority',pill:'
   potential:{key:'potential',label:'潜在有效',cls:'k-potential',pill:'p-potential',color:'#2F7FB8'},
   none:{key:'none',label:'无需关注',cls:'k-none',pill:'p-none',color:'#98A5B0'}};
 
-/* ============================================================
-   二、内置题库（data/question_bank.json，50 道母题全量内嵌）
-   ============================================================ */
-const BANK={"抽象":[
-{"id":"abs-001","type":"找规律","stem":"观察数列：2，4，8，16，___，请写出下一个数，并说说你是怎么想的。","answer":"32（每次乘以 2）","hint":"看看相邻两个数之间是什么关系。","difficulty":1},
-{"id":"abs-002","type":"找规律","stem":"字母按顺序排列：A，C，E，G，___，请填下一个字母。","answer":"I（每隔一个字母取一个）","hint":"把 26 个英文字母写出来，看看这几个字母的位置。","difficulty":1},
-{"id":"abs-003","type":"分类","stem":"下列物品中有一个与其他不同类，请找出来并说明理由：苹果、香蕉、白菜、橘子、西瓜。","answer":"白菜（是蔬菜，其余是水果）","hint":"想一想它们分别属于哪一大类。","difficulty":1},
-{"id":"abs-004","type":"找共同点","stem":"请说出下面这些事物有什么共同点：尺子、圆规、三角板、量角器。","answer":"都是测量或绘图工具（学习用品/几何工具）","hint":"想一想它们分别在什么课上、用来做什么。","difficulty":2},
-{"id":"abs-005","type":"找规律","stem":"观察数列：1，1，2，3，5，8，___，请写出下一个数。","answer":"13（从第 3 项起，每一项等于前两项之和）","hint":"看每个数是不是由前面某两个数相加得到的。","difficulty":2},
-{"id":"abs-006","type":"找规律","stem":"观察图形序列：○ △ □ ○ △ □ ○ △ ___，下一个图形是什么？","answer":"□（三个图形循环出现）","hint":"找一找图形出现的循环规律。","difficulty":1},
-{"id":"abs-007","type":"找规律","stem":"观察数列：1，3，6，10，15，___，请写出下一个数。","answer":"21（相邻两项的差依次是 2、3、4、5、6）","hint":"先算相邻两个数的差，看看差有什么规律。","difficulty":2},
-{"id":"abs-008","type":"找共同点","stem":"请说出下面这些事物有什么共同点：自行车、汽车、火车、飞机。","answer":"都是交通工具（都能载人从一个地方到另一个地方）","hint":"想一想它们都用来做什么。","difficulty":1},
-{"id":"abs-009","type":"分类","stem":"请把下列词语分成两类，并说明你的分类标准：足球、篮球、钢琴、羽毛球、小提琴、乒乓球。","answer":"球类：足球、篮球、羽毛球、乒乓球；乐器：钢琴、小提琴（按运动器材/乐器分）","hint":"想一想哪些是运动器材，哪些是乐器。","difficulty":2},
-{"id":"abs-010","type":"找规律","stem":"观察：甲、乙、丙、甲、乙、丙、甲、乙、___，下一个是什么字？","answer":"丙（三个字循环出现）","hint":"这是三个字的循环排列。","difficulty":1}],
-"分解":[
-{"id":"dec-001","type":"拆解步骤","stem":"请把「从起床到出门上学」这件事拆解成至少 6 个小步骤，按顺序写出来。","answer":"起床→穿衣→洗漱→吃早饭→收拾书包→出门（答案合理即可）","hint":"想一想从睁眼到出门，你依次做了哪些事。","difficulty":1},
-{"id":"dec-002","type":"拆解任务","stem":"班级要举办一次元旦联欢会，请把这个大任务拆解成至少 5 个子任务，并说明谁负责。","answer":"如：定场地、排节目、做道具、买零食、主持（答案合理即可）","hint":"从「准备、进行、收尾」三个阶段来想。","difficulty":2},
-{"id":"dec-003","type":"步骤排序","stem":"下列做作业的步骤被打乱了，请把它们排成合理的顺序：\n① 检查答案 ② 读题理解 ③ 动手作答 ④ 准备文具书本。","answer":"④→②→③→①","hint":"先想第一步应该做什么，最后一步做什么。","difficulty":1},
-{"id":"dec-004","type":"拆解问题","stem":"应用题：小明有 50 元，买 3 本每本 8 元的笔记本，还剩多少钱？请写出你的解题步骤（至少 3 步）。","answer":"① 算总价 3×8=24 ② 用 50-24=26 ③ 答：剩 26 元","hint":"先算什么，再算什么？分步写出来。","difficulty":1},
-{"id":"dec-005","type":"拆解任务","stem":"「写一篇 800 字的作文」看起来很难，请把它拆解成 4 个小步骤，让任务变简单。","answer":"如：① 列提纲 ② 写开头 ③ 写主体 ④ 写结尾并检查（答案合理即可）","hint":"把一个「大」任务切成几个「小」任务。","difficulty":2},
-{"id":"dec-006","type":"拆解任务","stem":"班级要组织一次春游，请从「准备、进行、收尾」三个阶段，各写出至少 2 个小任务。","answer":"准备：定地点、定时间、通知家长；进行：集合、游玩、午餐；收尾：清点人数、清理垃圾、安全返校（合理即可）","hint":"按时间顺序分阶段想。","difficulty":2},
-{"id":"dec-007","type":"拆解目标","stem":"「提高英语成绩」是个大目标，请把它拆解成 4 个可以每天做的小任务。","answer":"如：每天背 10 个单词、听 10 分钟英语、每周一篇阅读、每天读 10 分钟课文（合理即可）","hint":"把「提高成绩」拆成听、说、读、写等具体行动。","difficulty":2},
-{"id":"dec-008","type":"步骤排序","stem":"下列泡方便面的步骤被打乱，请排序：① 倒开水 ② 撕开包装 ③ 放入调料包 ④ 盖上等 3 分钟 ⑤ 把面饼放入碗中。","answer":"②→⑤→③→①→④","hint":"先做什么？最后做什么？按时间顺序排。","difficulty":1},
-{"id":"dec-009","type":"流程填空","stem":"下面是「从家到学校」的流程，请补全空缺：起床 → 洗漱 → ___ → 吃早饭 → ___ → 到校。","answer":"穿衣、出门（答案合理即可）","hint":"想一想起床后到吃早饭之间还做了什么。","difficulty":1},
-{"id":"dec-010","type":"拆解任务","stem":"学校大扫除任务有：扫地、擦窗、拖地、擦黑板、倒垃圾、整理桌椅。请把这 6 个任务分给 3 个同学，让每人工作量差不多，并说明分工理由。","answer":"如：同学1扫地+拖地，同学2擦窗+擦黑板，同学3倒垃圾+整理桌椅（合理即可）","hint":"先数一共几个任务，再平均分配。","difficulty":2}],
-"算法设计":[
-{"id":"alg-001","type":"迷宫","stem":"画一个 3×3 的方格迷宫，左上角是起点，右下角是终点，中间有 2 格是墙不能通过。请用箭头（→↓←↑）写出从起点到终点的一条路线。","answer":"示例：→→↓↓（具体路径取决于墙的位置，答案合理即可）","hint":"先观察哪些格子能走，再一步步移动。","difficulty":2},
-{"id":"alg-002","type":"排序","stem":"请把 5 个数 7、3、9、1、5 按从小到大排序，并写出你比较和交换的步骤（至少写出关键几步）。","answer":"1,3,5,7,9（如先找最小 1 放最前，再找 3……）","hint":"每次先找出最小的数放到最前面。","difficulty":2},
-{"id":"alg-003","type":"指令序列","stem":"一个小机器人站在起点（A 格），只能执行「前进一格」「左转」「右转」三个指令。请写出让它从 A 格走到 B 格（正前方 2 格、再右转方向 1 格处）的指令序列。","answer":"前进、前进、右转、前进（答案合理即可）","hint":"先想清 B 格在 A 格的什么方向，再分解成几步。","difficulty":3},
-{"id":"alg-004","type":"条件判断","stem":"用「如果…就…否则…」写一段规则，描述：坐公交车时，上车后如果有座位就坐下，没有座位就站着扶稳。","answer":"如果（有座位）就（坐下）；否则（站着扶稳）","hint":"先想「判断什么条件」，再想成立与否分别做什么。","difficulty":1},
-{"id":"alg-005","type":"循环","stem":"观察规律：三角形每多一条边，内角和增加 180°。三角形内角和 180°，那么五边形内角和是多少？","answer":"540°（180° + 2×180° = 540°）","hint":"从三角形到五边形，边数增加了 2。","difficulty":3},
-{"id":"alg-006","type":"找最值","stem":"有 5 个数：8、3、12、7、5。请写出「找出最大的数」的步骤（你分几步做？每一步在做什么？）。","answer":"先记住第一个数 8 为最大，依次与后面比较，遇到更大的就更新（体现逐个比较即可）","hint":"先记住一个数，再逐个和它比较。","difficulty":2},
-{"id":"alg-007","type":"贪心策略","stem":"要用 1 元、5 角、1 角的硬币凑出 1 元 7 角，怎样用最少的硬币？请写出你选择硬币的步骤。","answer":"先选 1 元剩 7 角；再选 5 角剩 2 角；再选 2 个 1 角。共 4 枚","hint":"每次先选面值最大的硬币。","difficulty":2},
-{"id":"alg-008","type":"规律累加","stem":"第 1 行画 1 个☆，第 2 行画 2 个☆，第 3 行画 3 个☆。那么第 5 行画几个☆？画到第 5 行一共画了多少个☆？","answer":"第 5 行 5 个；一共 1+2+3+4+5=15 个","hint":"先看每行个数的规律，再算总和。","difficulty":2},
-{"id":"alg-009","type":"排序","stem":"把 4 个数 5、1、4、2 从小到大排。写出「每次只交换相邻两个数」的排序过程（至少写出关键交换步骤）。","answer":"如：5和1交换→1,5,4,2；5和4交换→1,4,5,2；5和2交换→1,4,2,5；4和2交换→1,2,4,5（合理即可）","hint":"每次比较相邻两个，大的往后移。","difficulty":3},
-{"id":"alg-010","type":"并行优化","stem":"烧水要 8 分钟，煮面要 5 分钟，准备碗筷要 2 分钟。烧水和煮面能同时进行吗？怎样安排能让「吃上面」最快？最少几分钟？","answer":"先烧水 8 分钟（同时准备碗筷），水开后煮面 5 分钟；共 13 分钟","hint":"想一想哪些事能同时做，哪些必须按顺序。","difficulty":3}],
-"建模":[
-{"id":"mod-001","type":"流程图","stem":"请用方框和箭头，画出「早上去学校」的流程图：起床 → 洗漱 → 吃早饭 → 出门 → 到校。","answer":"用 5 个方框依次相连，箭头指向下一个步骤（合理即可）","hint":"每个步骤写在一个方框里，用箭头表示先后顺序。","difficulty":1},
-{"id":"mod-002","type":"表格整理","stem":"小明一周的运动时间如下：周一 30 分钟、周三 40 分钟、周五 50 分钟、周日 60 分钟。请用一张表格整理这些数据。","answer":"两列表：星期 / 时间，四行数据（合理即可）","hint":"先确定表格有几列，再逐行填写。","difficulty":1},
-{"id":"mod-003","type":"连线匹配","stem":"请把下列概念与含义连线：左：A 正方形 B 三角形 C 圆形；右：① 三条边 ② 四条等边 ③ 没有边","answer":"A-②，B-①，C-③","hint":"回想每个图形的边数特征。","difficulty":1},
-{"id":"mod-004","type":"关系图","stem":"小明和小红是朋友，小红和小刚是朋友，小刚和小丽是朋友。请用圆圈（人）和线（朋友关系）画出他们的关系图。","answer":"4 个圆圈，小明—小红—小刚—小丽依次连线（合理即可）","hint":"每个人画一个圆圈，是朋友就连一条线。","difficulty":2},
-{"id":"mod-005","type":"符号化","stem":"把这句话翻译成数学式子：「一个数先乘以 2，再加上 3，结果是 11。」（用 x 表示这个数）","answer":"2x + 3 = 11（解得 x = 4）","hint":"把「一个数」写成 x，按顺序写出来。","difficulty":2},
-{"id":"mod-006","type":"坐标定位","stem":"教室座位用「第几排第几列」表示。小明在第 3 排第 2 列，记作 (3,2)。那么 (5,4) 表示第几排第几列？小红在第 2 排第 5 列怎么表示？","answer":"(5,4)=第 5 排第 4 列；小红=(2,5)","hint":"第一个数表示排，第二个数表示列。","difficulty":1},
-{"id":"mod-007","type":"符号化","stem":"把这句话翻译成数学式子：「一个数除以 4 再减 2，结果是 3。」（用 x 表示，并求出 x）","answer":"x/4 - 2 = 3，解得 x = 20","hint":"按顺序把「除以 4」「减 2」「等于 3」写出来。","difficulty":2},
-{"id":"mod-008","type":"集合关系","stem":"全班 40 人，喜欢数学的 25 人，喜欢体育的 20 人，两个都喜欢的 10 人。请画两个圆圈表示关系，并回答：两个都不喜欢的有几人？","answer":"只数学 15、只体育 10、都喜欢 10、都不喜欢 40-15-10-10=5 人","hint":"重叠部分是「都喜欢」，先算各部分人数。","difficulty":3},
-{"id":"mod-009","type":"表格对比","stem":"套餐 A：月租 30 元每分钟 0.1 元；套餐 B：月租 0 元每分钟 0.25 元。请画表对比打 100、200 分钟时两种套餐各花多少、哪种划算？","answer":"100 分钟：A=40、B=25，B 划算；200 分钟：A=50、B=50，一样","hint":"先分别算两种套餐费用再比较。","difficulty":3},
-{"id":"mod-010","type":"层级图","stem":"学校下面有 3 个年级，每个年级有 2 个班。请用「树状图」从学校开始一层层画出这个结构。","answer":"学校 → 3 个年级 → 每个年级 2 个班，共 6 个班（画出层级即可）","hint":"最上面是学校，下一层年级，再下一层班。","difficulty":2}],
-"评估":[
-{"id":"eva-001","type":"找错误","stem":"小明这样算：35 + 48 = 73。请判断对不对，如果错了，指出错误并改正。","answer":"错，35+48=83（个位 5+8=13 进位算错）","hint":"个位 5+8 等于多少？要不要进位？","difficulty":1},
-{"id":"eva-002","type":"判断优劣","stem":"从家到学校有两条路：路线 A 路程近但红灯多（约 15 分钟）；路线 B 路程远但一路畅通（约 12 分钟）。你建议走哪条？为什么？","answer":"建议 B，因为实际用时更短（合理即可）","hint":"比较的是「路程」还是「时间」？","difficulty":1},
-{"id":"eva-003","type":"优化步骤","stem":"小华做作业：① 找作业本 ② 写作业 ③ 才想起没带课本 ④ 回教室拿课本。请问哪一步可以提前避免？怎么优化？","answer":"应在写作业前先检查是否带齐书本，避免步骤③④（合理即可）","hint":"想想哪一步是因为「前面没做好」才产生的。","difficulty":2},
-{"id":"eva-004","type":"判断对错","stem":"判断题并说明理由：「两个三角形一定能拼成一个正方形。」","answer":"错，只有两个完全相同的等腰直角三角形才能拼成正方形","hint":"随便两个三角形都行吗？举反例试试。","difficulty":2},
-{"id":"eva-005","type":"反思检查","stem":"考完试后，怎样检查答案才能尽量少出错？请列出至少 3 种检查方法。","answer":"如：重新算一遍、代入验算、检查单位、检查漏题、换个方法验证（合理即可）","hint":"从「计算」「书写」「题意」三个角度想。","difficulty":2},
-{"id":"eva-006","type":"找逻辑错误","stem":"小红说：「因为所有的狗都有四条腿，所以所有四条腿的动物都是狗。」这句话推理错在哪里？","answer":"不能反推，猫、牛也有四条腿（举反例即可）","hint":"想一想除了狗，还有什么动物也有四条腿。","difficulty":2},
-{"id":"eva-007","type":"方案权衡","stem":"买文具：A 店全场 8 折；B 店满 50 减 10。买 60 元哪家便宜？买 40 元呢？请计算说明。","answer":"60 元：A=48、B=50，A 便宜；40 元：A=32、B=40（不减），A 便宜","hint":"分别算两家实际花多少再比较。","difficulty":2},
-{"id":"eva-008","type":"找冗余","stem":"小刚做数学题：① 读题 ② 先写下题目 ③ 找已知条件 ④ 列式计算 ⑤ 验算 ⑥ 抄到另一张纸上。哪些步骤多余？为什么？","answer":"②和⑥多余（抄题不必要，除非老师要求）（合理即可）","hint":"想一想每一步是不是真的有必要。","difficulty":2},
-{"id":"eva-009","type":"代入验算","stem":"小华算出方程 2x + 3 = 9 的解是 x = 3。请帮他验算：把 x=3 代入，左边等于多少？等于右边吗？","answer":"左边 = 2×3+3 = 9 = 右边，所以 x=3 正确","hint":"把 x 的值代回原式算左边。","difficulty":1},
-{"id":"eva-010","type":"权衡利弊","stem":"明天考试，今晚两种选择：① 熬夜复习到凌晨 2 点；② 正常复习、11 点睡。请分别写出利弊并给出建议。","answer":"①利：多复习，弊：睡眠不足影响发挥；②利：精神好，弊：时间略少。建议②（合理即可）","hint":"从「复习效果」和「考试状态」两个角度权衡。","difficulty":2}]};
-
+/* 内置题库已移至后端 data/question_bank.json（单一数据源，100 题）。出题走 /api/intervention/generate，跨周去重。 */
 /* ============================================================
    三、诊断 API 客户端 + 结果适配层（前端不实现任何诊断算法）
    ============================================================ */
@@ -686,7 +668,7 @@ function gradeOf(p){ // 仅 hero 定性描述，不参与任何诊断分类 / �
    四、状态与路由
    ============================================================ */
 const state={mode:'dim',scores:{抽象:3,分解:3,算法设计:3,建模:3,评估:3},scaleAns:{},current:null,
-  batch:[],sheetSel:new Set(ORDER),lastSheet:null};
+  batch:[],sheetSel:new Set(ORDER),lastSheet:null,pkt:null,pktHtml:null};
 const EXAMPLES={weak:{抽象:2,分解:2,算法设计:3,建模:2,评估:3},
   mid:{抽象:3,分解:3,算法设计:3,建模:3,评估:3},
   skew:{抽象:2,分解:4,算法设计:2,建模:4,评估:4},
@@ -950,8 +932,13 @@ function parseGrid(grid){
   const colOf={};
   ORDER.forEach(k=>{const i=header.findIndex(h=>h===k||h.includes(k));if(i>=0)colOf[k]=i;});
   const hasHeader=ORDER.filter(k=>colOf[k]!=null).length>=3;
-  let idCol=0;
-  if(hasHeader){const ii=header.findIndex(h=>/编号|学号|姓名|名字|^id$/i.test(h));if(ii>=0)idCol=ii;}
+  let idCol=-1,nameCol=-1,classCol=-1;
+  if(hasHeader){
+    idCol=header.findIndex(h=>h.includes('编号')||h.includes('学号')||h==='id'||h.includes('序号'));
+    nameCol=header.findIndex(h=>h.includes('姓名')||h.includes('名字')||h==='name');
+    classCol=header.findIndex(h=>h.includes('班级')||h==='class'||h.includes('班别'));
+    if(idCol<0)idCol=nameCol; // 只有姓名列时，姓名当作编号
+  }
   const rows=[];
   clean.forEach((cells,idx)=>{
     if(hasHeader&&idx===0)return;
@@ -961,7 +948,9 @@ function parseGrid(grid){
     if(ORDER.every(k=>!isNaN(sc[k]))){
       let id=hasHeader?(cells[idCol]||'').trim():String(cells[0]||'').trim();
       if(!id)id='学生'+(idx+1);
-      rows.push({id,sc});
+      const name=hasHeader&&nameCol>=0&&nameCol!==idCol?(cells[nameCol]||'').trim():'';
+      const cls=hasHeader&&classCol>=0?(cells[classCol]||'').trim():'';
+      rows.push({id,sc,name,cls});
     }
   });
   return rows;
@@ -1066,7 +1055,9 @@ function bindUpload(){
       const grid=await readSpreadsheetFile(f);
       const rows=parseGrid(grid);
       if(!rows.length)throw new Error('解析到 0 条有效记录，请确认表头含五个维度列、且数据为 1–5 的数字');
-      const tsv=[['学生编号',...ORDER].join('\t')].concat(rows.map(r=>[r.id,...ORDER.map(k=>r.sc[k])].join('\t'))).join('\n');
+      const hasName=rows.some(r=>r.name),hasCls=rows.some(r=>r.cls);
+      const head=['学生编号',...(hasName?['姓名']:[]),...(hasCls?['班级']:[]),...ORDER];
+      const tsv=[head.join('\t')].concat(rows.map(r=>[r.id,...(hasName?[r.name]:[]),...(hasCls?[r.cls]:[]),...ORDER.map(k=>r.sc[k])].join('\t'))).join('\n');
       document.getElementById('batchInput').value=tsv;
       status.textContent='已从「'+f.name+'」解析出 '+rows.length+' 名学生并填入下方，可核对后重新诊断';
       runBatch();
@@ -1090,9 +1081,9 @@ async function runBatch(){
   try{
     const students=rows.map(r=>({student_id:r.id,scores:r.sc}));
     const data=await apiBatch(students); // 一次请求完成全部诊断
-    state.batch=data.results.map(d=>{const res=normalize(d);
+    state.batch=data.results.map((d,i)=>{const res=normalize(d);
       const pri=res.rows.filter(x=>x.pri===0).map(x=>x.dim); // 优先级0=优先干预（不匹配emoji文本）
-      return {id:res.id,res,pri,top:pri[0]||'综合'};});
+      return {id:res.id,res,pri,top:pri[0]||'综合',name:rows[i].name||'',cls:rows[i].cls||''};});
     renderBatch();
   }catch(err){
     toast('批量诊断失败：未连接本地后端，请先启动 uvicorn 后端');
@@ -1161,44 +1152,124 @@ function initSheetChecks(){
     wrap.appendChild(c);
   });
 }
-(function initWeek(){const w=document.getElementById('sheetWeek');for(let i=1;i<=12;i++){const o=document.createElement('option');o.value=i;o.textContent='第 '+i+' 周';if(i===1)o.selected=true;w.appendChild(o);}})();
+(function initWeek(){['sheetWeek','pktWeek'].forEach(id=>{const w=document.getElementById(id);for(let i=1;i<=12;i++){const o=document.createElement('option');o.value=i;o.textContent='第 '+i+' 周';if(i===1)o.selected=true;w.appendChild(o);}});})();
 document.getElementById('genSheet').addEventListener('click',genSheet);
-function pickQuestions(dim,count,maxDiff){
-  let pool=BANK[dim].filter(q=>q.difficulty<=maxDiff);
-  if(!pool.length)pool=BANK[dim];
-  const out=[];for(let i=0;i<count;i++)out.push(pool[i%pool.length]);return out;
-}
-function genSheet(){
+async function genSheet(){
   const dims=ORDER.filter(k=>state.sheetSel.has(k));
   if(!dims.length){toast('请至少选择一个训练维度');return;}
   const count=parseInt(document.getElementById('sheetCount').value);
-  const week=document.getElementById('sheetWeek').value;
+  const week=parseInt(document.getElementById('sheetWeek').value);
   const maxDiff=parseInt(document.getElementById('sheetDiff').value);
-  document.getElementById('sheetEmpty').style.display='none';
-  const area=document.getElementById('sheetArea');area.style.display='block';
-  let html='<div class="sheet-preview">';
-  html+=`<h3>计算思维个性化训练题单（第 ${week} 周）</h3>`;
-  html+=`<div class="meta">训练维度：${dims.map(k=>`${k}·${FULL[k]}`).join('、')}　|　每维 ${count} 题　|　作答要求：请独立思考，用文字或图形写出思路。</div>`;
-  let qi=1;const key=[];
-  dims.forEach(dim=>{
-    html+=`<div style="font-family:var(--serif);font-weight:700;color:var(--teal-d);margin:14px 0 8px;font-size:15px">${FULL[dim]}（${dim}）</div>`;
-    pickQuestions(dim,count,maxDiff).forEach(q=>{
-      html+=`<div class="q-item"><div class="qh">第 ${qi++} 题　【${q.type}】　难度 ${'★'.repeat(q.difficulty)}</div>
-        <div class="qstem">${q.stem}</div><div class="ansline"></div><div class="ansline"></div><div class="ansline"></div></div>`;
-      key.push({dim,q});
+  const btn=document.getElementById('genSheet');btn.disabled=true;btn.textContent='生成中…';
+  try{
+    const res=await postJSON('/api/intervention/generate',{dims,count,week,max_diff:maxDiff});
+    document.getElementById('sheetEmpty').style.display='none';
+    const area=document.getElementById('sheetArea');area.style.display='block';
+    let html='<div class="sheet-preview">';
+    html+=`<h3>计算思维个性化训练题单（第 ${res.week} 周）</h3>`;
+    html+=`<div class="meta">训练维度：${res.groups.map(g=>`${g.dim}·${g.full}`).join('、')}　|　共 ${res.total} 题　|　作答要求：请独立思考，用文字或图形写出思路。</div>`;
+    if(res.warnings&&res.warnings.length){
+      html+=`<div style="margin:12px 0;padding:10px 12px;background:#FBF1E6;border-left:4px solid var(--c-observe);border-radius:6px;font-size:13px;color:#8a5a00">${res.warnings.map(w=>`⚠️ ${w}`).join('<br>')}</div>`;
+    }
+    let qi=1;const key=[];
+    res.groups.forEach(g=>{
+      html+=`<div style="font-family:var(--serif);font-weight:700;color:var(--teal-d);margin:14px 0 8px;font-size:15px">${g.full}（${g.dim}）</div>`;
+      g.questions.forEach(q=>{
+        html+=`<div class="q-item"><div class="qh">第 ${qi++} 题　【${q.type}】　难度 ${'★'.repeat(q.difficulty)}</div>
+          <div class="qstem">${q.stem.replace(/\n/g,'<br>')}</div><div class="ansline"></div><div class="ansline"></div><div class="ansline"></div></div>`;
+        key.push({dim:g.dim,q});
+      });
     });
-  });
-  html+='<div class="answer-key"><h4>参考答案（教师用）</h4>';
-  let ai=1;
-  key.forEach(({dim,q})=>{html+=`<p><b>第 ${ai++} 题（${dim}·${q.type}）：</b>${q.answer}　<span style="color:#8A97A2">提示：${q.hint}</span></p>`;});
-  html+='</div></div>';
-  area.innerHTML=html;state.lastSheet=html;toast('题单已生成，可打印');
+    html+='<div class="answer-key"><h4>参考答案（教师用）</h4>';
+    let ai=1;
+    key.forEach(({dim,q})=>{html+=`<p><b>第 ${ai++} 题（${dim}·${q.type}）：</b>${q.answer}　<span style="color:#8A97A2">提示：${q.hint||''}</span></p>`;});
+    html+='</div></div>';
+    area.innerHTML=html;state.lastSheet=html;toast('题单已生成，可打印');
+  }catch(e){
+    toast('生成失败：'+e.message);
+  }finally{
+    btn.disabled=false;btn.textContent='生成题单';
+  }
 }
 document.getElementById('printSheet').addEventListener('click',()=>{
   if(!state.lastSheet){toast('请先生成题单');return;}
   document.getElementById('printMount').innerHTML='<div class="print-area">'+state.lastSheet+'</div>';
   window.print();
   setTimeout(()=>{document.getElementById('printMount').innerHTML='';},500);
+});
+document.getElementById('resetSheet').addEventListener('click',async()=>{
+  if(!confirm('确定清空所有已发题记录吗？清空后下一周会重新从题库开头抽题。'))return;
+  try{await postJSON('/api/intervention/reset',{});toast('已清空出题历史');}
+  catch(e){toast('清空失败：'+e.message);}
+});
+
+/* ---------- 一人一单：按诊断结果生成个人题单 + 分发清单 ---------- */
+document.getElementById('genPkt').addEventListener('click',genPkt);
+async function genPkt(){
+  const weak=state.batch.filter(r=>r.pri.length>0);
+  if(!weak.length){toast('请先到「批量诊断」完成诊断（且至少有学生含优先干预维度）');return;}
+  const count=parseInt(document.getElementById('pktCount').value);
+  const week=parseInt(document.getElementById('pktWeek').value);
+  const maxDiff=parseInt(document.getElementById('pktDiff').value);
+  const maxDims=parseInt(document.getElementById('pktMaxDims').value);
+  const students=weak.map(r=>({id:r.id,name:r.name||'',cls:r.cls||'',dims:r.pri}));
+  const noWeak=state.batch.length-weak.length;
+  const btn=document.getElementById('genPkt');btn.disabled=true;btn.textContent='生成中…';
+  try{
+    const res=await postJSON('/api/intervention/students',{students,count,week,max_diff:maxDiff,max_dims:maxDims});
+    state.pkt=res;
+    renderPkt(noWeak);
+    toast('已生成 '+res.packets.length+' 份个人题单');
+  }catch(e){toast('生成失败：'+e.message);}
+  finally{btn.disabled=false;btn.textContent='生成个人题单';}
+}
+function renderPkt(noWeak){
+  const res=state.pkt;
+  document.getElementById('pktEmpty').style.display='none';
+  document.getElementById('pktResult').style.display='';
+  const sorted=[...res.distribution].sort((a,b)=>(a.cls||'').localeCompare(b.cls||'zh')||(a.id||'').localeCompare(b.id||'','zh'));
+  let list='<div class="card" style="margin-bottom:16px"><div class="card-h"><h3>分发清单（'+res.distribution.length+' 人需要题单'+(noWeak?'，另有 '+noWeak+' 人无优先干预维度，无需题单':'')+'）</h3><span class="hint">已按班级+学号排序，照此发放</span></div><div class="table-wrap"><table><tr><th>班级</th><th>姓名</th><th>编号</th><th>薄弱维度</th><th class="num">题数</th></tr>';
+  sorted.forEach(d=>{list+=`<tr><td>${d.cls||'-'}</td><td><b>${d.name||d.id}</b></td><td>${d.id}</td><td>${d.dims.join('、')||'—'}</td><td class="num">${d.count}</td></tr>`;});
+  list+='</table></div></div>';
+  document.getElementById('pktList').innerHTML=list;
+  let html='<div class="sheet-preview">';
+  if(res.warnings&&res.warnings.length){
+    html+=`<div style="margin:0 0 12px;padding:10px 12px;background:#FBF1E6;border-left:4px solid var(--c-observe);border-radius:6px;font-size:13px;color:#8a5a00">${res.warnings.map(w=>`⚠️ ${w}`).join('<br>')}</div>`;
+  }
+  res.packets.forEach(p=>{
+    html+='<div style="page-break-after:always">';
+    html+=`<div style="border-bottom:2px solid var(--teal-d);padding-bottom:6px;margin-bottom:10px"><span style="font-family:var(--serif);font-weight:700;font-size:16px">计算思维个性化训练题单（第 ${res.week} 周）</span><span style="float:right;font-size:13px;color:var(--ink-2)">${p.cls||''} ${p.name||''}（${p.id}）</span></div>`;
+    html+=`<div style="font-size:13px;color:var(--ink-2);margin-bottom:10px">训练维度：${p.dims.map(d=>`${d}·${FULL[d]}`).join('、')}　|　共 ${p.questions.length} 题　|　作答要求：请独立思考，用文字或图形写出思路。</div>`;
+    p.dims.forEach(d=>{
+      html+=`<div style="font-family:var(--serif);font-weight:700;color:var(--teal-d);margin:10px 0 6px;font-size:14px">${FULL[d]}（${d}）</div>`;
+      p.questions.filter(q=>q.dim===d).forEach(q=>{
+        html+=`<div class="q-item"><div class="qh">【${q.type}】　难度 ${'★'.repeat(q.difficulty)}</div><div class="qstem">${q.stem.replace(/\n/g,'<br>')}</div><div class="ansline"></div><div class="ansline"></div><div class="ansline"></div></div>`;
+      });
+    });
+    html+='</div>';
+  });
+  html+='<div style="page-break-before:always"><div class="answer-key"><h4>参考答案（教师用，第 '+res.week+' 周）</h4>';
+  const seen=new Set();let ai=1;
+  res.packets.forEach(p=>p.questions.forEach(q=>{
+    if(seen.has(q.id))return;seen.add(q.id);
+    html+=`<p><b>${ai++}（${q.dim}·${q.type}）</b>：${q.answer}　<span style="color:#8A97A2">提示：${q.hint||''}</span></p>`;
+  }));
+  html+='</div></div></div>';
+  document.getElementById('pktArea').innerHTML=html;
+  state.pktHtml=html;
+}
+document.getElementById('printPkt').addEventListener('click',()=>{
+  if(!state.pktHtml){toast('请先生成个人题单');return;}
+  document.getElementById('printMount').innerHTML='<div class="print-area">'+state.pktHtml+'</div>';
+  window.print();
+  setTimeout(()=>{document.getElementById('printMount').innerHTML='';},500);
+});
+document.getElementById('dlPktList').addEventListener('click',()=>{
+  if(!state.pkt){toast('请先生成个人题单');return;}
+  const head=['班级','姓名','编号','薄弱维度','题数'];
+  const lines=[head.join(',')];
+  state.pkt.distribution.forEach(d=>{lines.push([d.cls,d.name||d.id,d.id,d.dims.join('|'),d.count].join(','));});
+  download('分发清单_第'+state.pkt.week+'周.csv','﻿'+lines.join('\n'),'text/csv;charset=utf-8');toast('已导出分发清单 CSV');
 });
 
 /* ============================================================

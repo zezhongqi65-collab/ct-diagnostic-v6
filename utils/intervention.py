@@ -50,6 +50,39 @@ def _writable_dir(relative: str) -> Path:
 
 
 QUESTION_BANK_PATH: Path = _resource_path('data/question_bank.json')
+HISTORY_PATH: Path = _writable_dir('data/intervention_history.json')
+
+
+def load_history() -> dict:
+    """加载出题历史（{周次: {维度: [已用题目id]}}）。"""
+    if HISTORY_PATH.exists():
+        try:
+            with open(HISTORY_PATH, encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+
+def save_history(history: dict) -> None:
+    """保存出题历史。"""
+    HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(HISTORY_PATH, 'w', encoding='utf-8') as f:
+        json.dump(history, f, ensure_ascii=False, indent=2)
+
+
+def used_ids(history: dict, dim: str) -> set[str]:
+    """某维度在所有周次里已经用过的题目 id 集合。"""
+    used: set[str] = set()
+    for week_dims in history.values():
+        for qid in week_dims.get(dim, []):
+            used.add(qid)
+    return used
+
+
+def reset_history() -> None:
+    """清空出题历史（新学期重新开始一轮）。"""
+    save_history({})
 
 
 # ═══════════════════════════════════════════════════════
@@ -174,12 +207,13 @@ def generate_question_variant(question: dict) -> Optional[dict]:
 
 
 def select_questions(dim: str, count: int, use_llm: bool,
-                     bank: dict[str, list[dict]]) -> list[dict]:
+                     bank: dict[str, list[dict]],
+                     used: set[str] | None = None) -> list[dict]:
     """为某维度（或「综合」）选出 count 道题。
 
     - 「综合」组（无优先维度的学生）：从五个维度混合抽取基础题。
     - use_llm=True 时，尝试为母题生成变式（成功用变式，失败回退母题）。
-    - 题库不足 count 道时循环补足。
+    - used：已发过的题目 id 集合，自动跳过（跨周不重复）；题库不足时循环补足。
     """
     if dim == '综合':
         pool = [q for d in CAUSAL_ORDER for q in bank.get(d, [])]
@@ -187,6 +221,14 @@ def select_questions(dim: str, count: int, use_llm: bool,
         pool = bank.get(dim, [])
     if not pool:
         return []
+
+    if used:
+        fresh = [q for q in pool if q.get('id', '') not in used]
+        if len(fresh) >= count:
+            pool = fresh  # 未用题目足够，只取未用
+        else:
+            # 未用优先，用完的放后面兜底
+            pool = fresh + [q for q in pool if q.get('id', '') in used]
 
     if use_llm:
         selected: list[dict] = []
@@ -288,6 +330,9 @@ def generate_intervention_package(
         生成的 Word 文件路径列表。
     """
     bank = bank if bank is not None else load_question_bank()
+    history = load_history()
+    week_key = str(week)
+    used_now = history.setdefault(week_key, {})
     groups = group_students_by_dim(diagnosis_results)
 
     out_dir = out_dir or _writable_dir('data/intervention')
@@ -296,13 +341,106 @@ def generate_intervention_package(
 
     paths: list[Path] = []
     for dim, student_ids in groups.items():
-        questions = select_questions(dim, questions_per_sheet, use_llm, bank)
+        used = used_ids(history, dim)
+        questions = select_questions(dim, questions_per_sheet, use_llm, bank, used=used)
         if not questions:
             continue
+        used_now[dim] = list(dict.fromkeys(used_now.get(dim, []) + [q.get('id', '') for q in questions]))
         doc = build_dimension_sheet(dim, student_ids, questions, week)
         safe_dim = dim if dim == '综合' else dim
         path = out_dir / f'第{week}周_{safe_dim}训练题单.docx'
         doc.save(path)
         paths.append(path)
 
+    save_history(history)
     return paths
+
+
+# ═══════════════════════════════════════════════════════
+# 5. 一人一单（按学生生成个性化题单，合并成一份 Word）
+# ═══════════════════════════════════════════════════════
+
+
+def generate_student_packets(
+    diagnosis_results: list[dict],
+    week: int,
+    questions_per_dim: int = 10,
+    max_dims: int = 2,
+    out_dir: Optional[Path] = None,
+    bank: Optional[dict[str, list[dict]]] = None,
+) -> tuple[Path, list[dict]]:
+    """按学生生成「一人一单」：合并成一份 Word（每名学生一页）+ 分发清单。
+
+    每个学生取「优先干预」维度中排序最靠前的 max_dims 个，各 questions_per_dim 题。
+    同维度学生共享本周题目；跨周自动跳过已发过的题。
+
+    Returns:
+        (合并后的 Word 题单路径, 分发清单行列表 [{学生ID, 训练维度, 题数}]).
+    """
+    bank = bank if bank is not None else load_question_bank()
+    history = load_history()
+    week_key = str(week)
+    used_now = history.setdefault(week_key, {})
+
+    # 1) 每个学生的薄弱维度（优先干预，按优先级）
+    student_dims: dict[str, list[str]] = {}
+    for r in diagnosis_results:
+        dims = extract_priority_dims(r)
+        student_dims[str(r['student_id'])] = dims[:max_dims]
+
+    # 2) 涉及的所有维度各选一次题（同维度学生共享本周题目）
+    all_dims = sorted({d for dims in student_dims.values() for d in dims})
+    dim_questions: dict[str, list[dict]] = {}
+    for dim in all_dims:
+        used = used_ids(history, dim)
+        qs = select_questions(dim, questions_per_dim, False, bank, used=used)
+        used_now[dim] = list(dict.fromkeys(used_now.get(dim, []) + [q.get('id', '') for q in qs]))
+        dim_questions[dim] = qs
+    save_history(history)
+
+    # 3) 合并成一份 Word
+    from docx import Document
+    doc = Document()
+    _set_cjk_font(doc)
+    _add_heading(doc, f'计算思维个性化训练题单（第 {week} 周）—— 一人一单')
+
+    dist_rows: list[dict] = []
+    first = True
+    for sid, dims in student_dims.items():
+        if not dims:
+            continue
+        if not first:
+            doc.add_page_break()
+        first = False
+
+        doc.add_heading(str(sid), level=1)
+        doc.add_paragraph('训练维度：' + '、'.join(dims))
+        qs_all = [(d, q) for d in dims for q in dim_questions.get(d, [])]
+        idx = 1
+        for d in dims:
+            doc.add_heading(DIM_NAMES.get(d, d), level=2)
+            for _, q in [x for x in qs_all if x[0] == d]:
+                _add_question(doc, idx, q)
+                idx += 1
+        dist_rows.append({'学生ID': str(sid), '训练维度': '、'.join(dims), '题数': idx - 1})
+
+    # 4) 参考答案页（教师用，同维度题目按 id 去重）
+    doc.add_page_break()
+    _add_heading(doc, '参考答案（教师用）')
+    seen: set[str] = set()
+    ai = 1
+    for dim, qs in dim_questions.items():
+        for q in qs:
+            if q.get('id') in seen:
+                continue
+            seen.add(q.get('id', ''))
+            doc.add_paragraph(f'第 {ai} 题（{dim}·{q["type"]}）：{q["answer"]}')
+            if q.get('hint'):
+                doc.add_paragraph(f'　　提示：{q["hint"]}')
+            ai += 1
+
+    out_dir = Path(out_dir) if out_dir else _writable_dir('data/intervention')
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f'第{week}周_一人一单题单.docx'
+    doc.save(path)
+    return path, dist_rows

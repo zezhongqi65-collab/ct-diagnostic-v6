@@ -11,3 +11,5 @@ secrets.toml
 .env
 dist/
 build/
+data/intervention_history.json
+data/intervention/
