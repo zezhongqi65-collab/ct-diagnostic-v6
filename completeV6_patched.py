@@ -259,18 +259,14 @@ def backdoor_causal_effect(df, treatment, outcome, confounders=None):
 
     - 优先使用 statsmodels OLS 线性回归（回归系数本身即每 1 分的边际效应）
     - OLS 失败时回退到分组比较（高分组≥4 vs 低分组<3），并按得分跨度归一化到每 1 分
-    - p>0.05 时不直接归零，改为 ×0.3 衰减，保留信息
+    - 保留点估计：不因 p 值不显著而衰减（弱但为正的效应应进入「潜在有效」，而非被压成 0）
     """
     # OLS 路径：回归系数是「每 1 分」的边际效应
     if sm is not None and confounders and len(confounders) > 0:
         formula = f"{outcome} ~ {treatment} + " + " + ".join(confounders)
         try:
             fit = sm.OLS.from_formula(formula, data=df).fit()
-            ate = fit.params[treatment]
-            p_value = fit.pvalues[treatment]
-            if p_value > 0.05:
-                return ate * 0.3
-            return ate
+            return float(fit.params[treatment])
         except Exception:
             pass
 
