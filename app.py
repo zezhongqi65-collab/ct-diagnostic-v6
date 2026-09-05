@@ -42,6 +42,7 @@ from utils.report import (
 
 from utils.intervention import (
     generate_intervention_package,
+    group_students_by_dim,
     load_question_bank,
 )
 
@@ -752,13 +753,46 @@ else:
             help="开启后为母题生成变式（换数字/情境）扩充题量；DeepSeek 不可用时自动回退母题。",
         )
     with col3:
-        n_questions = st.slider("每份题单题数", 3, 8, 5, key="intervention_n_questions")
+        n_questions = st.slider(
+            "每份题单题数", 3, 10, 5, key="intervention_n_questions",
+            help="题库每维度预置 10 道母题，超过 10 道会循环重复。",
+        )
 
     if use_llm_variant:
         import os as _os
         deepseek_key = _os.environ.get("DEEPSEEK_API_KEY", "")
         if not deepseek_key:
             st.warning("⚠️ 未检测到 DEEPSEEK_API_KEY，将自动回退到预置母题。")
+
+    # 批量模式：展示学生分组结果 + 下载分发清单
+    if source == "批量诊断结果":
+        groups = group_students_by_dim(diagnosis_results)
+        st.markdown("---")
+        st.subheader("📋 学生分组结果（谁做哪套题）")
+        st.caption("按最优先的薄弱维度自动分组，同一组学生做同一套题。")
+        group_df = pd.DataFrame([
+            {
+                '训练维度': (dim if dim == '综合' else DIM_NAMES.get(dim, dim)),
+                '学生数': len(students),
+                '学生名单': '、'.join(students),
+            }
+            for dim, students in groups.items()
+        ])
+        st.dataframe(group_df, hide_index=True)
+
+        dist_rows = [
+            {'学生ID': sid, '训练维度': dim, '题单': f'第{week}周_{dim}训练题单.docx'}
+            for dim, students in groups.items()
+            for sid in students
+        ]
+        if dist_rows:
+            st.download_button(
+                "📥 下载分发清单（CSV）",
+                pd.DataFrame(dist_rows).to_csv(index=False).encode('utf-8-sig'),
+                f'分发清单_第{week}周.csv',
+                'text/csv',
+                key='distribution_download',
+            )
 
     if st.button("🎯 生成题单", type="primary", width='stretch'):
         with st.spinner("正在生成思维训练题单..."):
