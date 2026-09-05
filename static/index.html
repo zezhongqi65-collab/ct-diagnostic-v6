@@ -303,7 +303,7 @@ function renderResult(d){
   // Layer 1 反事实表
   let l1=`<table><tr><th>维度</th><th>当前</th><th>提至满分预测</th><th>变化</th></tr>`;
   d.layer1.forEach(x=>{
-    const full=x.series.find(s=>s[f'{x.dim}假设值']===5);
+    const full=x.series.find(s=>s[`${x.dim}假设值`]===5);
     l1+=`<tr><td>${esc(x.dim)}</td><td>${x.current}</td><td>${full?full.预测成绩:'—'}</td><td>${full?(full.相比当前变化>0?'+':''):''}${full?full.相比当前变化:'—'}</td></tr>`;
   });
   l1+='</table><div class="disc" style="margin-top:10px">免责声明：以上为模型假设模拟（CFE），仅展示「若该维度独立变化，模型预测如何改变」，非真实因果；实际干预优先级请以 Layer 2 个体化因果效应为准。</div>';
