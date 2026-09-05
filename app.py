@@ -193,7 +193,7 @@ with st.sidebar:
             else:
                 st.caption("🔴 Ollama 未连接")
         with col_b:
-            deepseek_key = _os.environ.get("DEEPSEEK_API_KEY") or st.secrets.get("DEEPSEEK_API_KEY", "")
+            deepseek_key = _os.environ.get("DEEPSEEK_API_KEY", "")
             if deepseek_key:
                 masked = deepseek_key[:6] + "****" + deepseek_key[-4:]
                 st.success(f"🟢 DeepSeek: {masked}")
@@ -756,7 +756,7 @@ else:
 
     if use_llm_variant:
         import os as _os
-        deepseek_key = _os.environ.get("DEEPSEEK_API_KEY") or st.secrets.get("DEEPSEEK_API_KEY", "")
+        deepseek_key = _os.environ.get("DEEPSEEK_API_KEY", "")
         if not deepseek_key:
             st.warning("⚠️ 未检测到 DEEPSEEK_API_KEY，将自动回退到预置母题。")
 
