@@ -5,361 +5,1206 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>计算思维三层因果诊断工作台</title>
 <link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap">
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js" integrity="sha384-pPi0zxBAoDu6+JXW/C68UZLvBUUtU+7zonhif43rqj7pxsGyqyqzcian2Rj37Rss" crossorigin="anonymous"></script>
 <style>
-/* ============ 设计令牌 ============ */
+/* ============================================================
+   Design Tokens —— 学术纸面工作台
+   ============================================================ */
 :root{
   --paper:#F6F3EC; --paper-2:#EFE9DC; --card:#FFFFFF; --card-2:#FBF8F1;
   --ink:#21303A; --ink-2:#465863; --ink-3:#7C8994;
   --line:#E4DECF; --line-2:#D6CEBB;
-  --teal:#0E6B63; --teal-d:#0A4D47; --teal-soft:#E2F0ED;
-  --c-priority:#2F9E6E; --c-observe:#D08A12; --c-potential:#2F7FB8; --c-none:#98A5B0;
+  --teal:#0E6B63; --teal-d:#0A4D47; --teal-soft:#E2F0ED; --teal-ink:#0B564F;
+  --c-priority:#2F9E6E;  --c-observe:#D08A12;  --c-potential:#2F7FB8;  --c-none:#98A5B0;
   --bg-priority:#E7F4EC; --bg-observe:#FAF1DC; --bg-potential:#E8F1F8; --bg-none:#EEF1F4;
   --serif:"Noto Serif SC","Songti SC","SimSun",serif;
   --sans:"Noto Sans SC","Microsoft YaHei","PingFang SC",system-ui,sans-serif;
   --shadow:0 1px 2px rgba(33,48,58,.05),0 4px 16px rgba(33,48,58,.05);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--sans);color:var(--ink);background:var(--paper);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+html,body{height:100%}
+body{
+  font-family:var(--sans); color:var(--ink); background:var(--paper);
+  font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+.num{font-variant-numeric:tabular-nums;}
 button{font-family:var(--sans);cursor:pointer}
 ::selection{background:var(--teal-soft)}
 
-/* ============ 外壳与导航 ============ */
-.app-shell{display:flex;min-height:100vh}
-.sidebar{width:224px;flex:0 0 224px;background:#103B37;color:#E9F2EF;display:flex;flex-direction:column;padding:24px 16px;position:sticky;top:0;height:100vh}
-.brand{display:flex;align-items:center;gap:10px;margin-bottom:22px}
-.brand .logo{width:34px;height:34px;border:1.5px solid #7FC4B8;border-radius:8px;display:grid;place-items:center;font-family:var(--serif);font-weight:700;font-size:16px;color:#7FC4B8}
-.brand h1{font-family:var(--serif);font-size:16px;font-weight:700;line-height:1.35;color:#fff}
+/* ============================================================
+   外壳与导航
+   ============================================================ */
+.app-shell{display:flex;min-height:100vh;min-width:1080px}
+.sidebar{
+  width:232px;flex:0 0 232px;background:#103B37;color:#E9F2EF;
+  display:flex;flex-direction:column;padding:26px 18px;position:sticky;top:0;height:100vh;
+}
+.brand .mark{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.brand .logo{width:34px;height:34px;flex:0 0 34px;border:1.5px solid #7FC4B8;border-radius:8px;
+  display:grid;place-items:center}
+.brand h1{font-family:var(--serif);font-size:17px;font-weight:700;line-height:1.35;letter-spacing:.5px}
+.brand .sub{font-size:11.5px;color:#9DC7BE;margin:2px 0 22px 2px;letter-spacing:.3px}
 .nav{display:flex;flex-direction:column;gap:4px}
-.nav button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:0;background:transparent;color:#BFD6D0;font-size:14px;padding:11px 12px;border-radius:8px;transition:.15s;font-weight:500}
+.nav button{
+  display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:0;background:transparent;
+  color:#BFD6D0;font-size:14px;padding:11px 12px;border-radius:8px;transition:.15s;font-weight:500;
+}
+.nav button svg{width:18px;height:18px;flex:0 0 18px;stroke:currentColor;fill:none;stroke-width:1.7}
 .nav button:hover{background:rgba(255,255,255,.07);color:#fff}
-.nav button.active{background:var(--teal);color:#fff}
-.nav .idx{font-family:var(--serif);font-size:12px;opacity:.6;margin-left:auto}
-.side-foot{margin-top:auto;font-size:11px;color:#8FB5AC;line-height:1.7;border-top:1px solid rgba(255,255,255,.12);padding-top:12px}
-.content{flex:1;padding:28px 34px 60px;min-width:0}
+.nav button.active{background:var(--teal);color:#fff;box-shadow:0 2px 8px rgba(14,107,99,.4)}
+.nav .idx{font-family:var(--serif);font-size:12px;opacity:.65;margin-left:auto}
+.side-foot{margin-top:auto;font-size:11px;color:#8FB5AC;line-height:1.7;border-top:1px solid rgba(255,255,255,.12);padding-top:14px}
+.content{flex:1;padding:30px 34px 60px;min-width:0}
 .view{display:none;animation:fade .25s ease}
 .view.active{display:block}
 @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 
-/* ============ 页头 ============ */
-.page-head{margin-bottom:18px}
-.page-head .eyebrow{font-size:11px;letter-spacing:2px;color:var(--teal);font-weight:700}
-.page-head h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:4px 0}
-.page-head p{color:var(--ink-2);font-size:13px;max-width:840px}
+/* 页头 */
+.page-head{margin-bottom:20px}
+.page-head .eyebrow{font-size:12px;letter-spacing:2px;color:var(--teal);font-weight:700;text-transform:uppercase}
+.page-head h2{font-family:var(--serif);font-size:25px;font-weight:700;margin:4px 0 4px}
+.page-head p{color:var(--ink-2);font-size:13px;max-width:820px}
 
-/* ============ 卡片与组件 ============ */
+/* ============================================================
+   通用组件
+   ============================================================ */
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
-.card-h{padding:13px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
-.card-h h3{font-family:var(--serif);font-size:15px;font-weight:700}
-.card-h .tag{font-size:11px;font-weight:700;color:var(--teal-d);background:var(--teal-soft);border:1px solid #BFDDD6;padding:2px 8px;border-radius:20px;letter-spacing:.5px}
-.card-b{padding:16px 18px}
-.btn{border:1px solid var(--line-2);background:#fff;color:var(--ink-2);border-radius:8px;padding:9px 18px;font-size:13.5px;font-weight:500;transition:.15s}
+.card-h{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.card-h h3{font-family:var(--serif);font-size:15.5px;font-weight:700}
+.card-h .tag-layer{font-size:11px;font-weight:700;color:var(--teal-d);background:var(--teal-soft);
+  border:1px solid #BfDDD6;padding:2px 8px;border-radius:20px;letter-spacing:.5px}
+.card-h .hint{margin-left:auto;font-size:12px;color:var(--ink-3)}
+.card-b{padding:18px}
+.grid{display:grid;gap:16px}
+.row{display:flex;gap:16px;align-items:stretch}
+label.flabel{display:block;font-size:12.5px;color:var(--ink-2);font-weight:500;margin-bottom:6px}
+input[type=text],textarea,select{
+  font-family:var(--sans);font-size:13.5px;color:var(--ink);background:var(--card-2);
+  border:1px solid var(--line-2);border-radius:7px;padding:9px 11px;width:100%;outline:none;transition:.15s}
+input[type=text]:focus,textarea:focus,select:focus{border-color:var(--teal);background:#fff;box-shadow:0 0 0 3px var(--teal-soft)}
+.btn{border:1px solid var(--line-2);background:#fff;color:var(--ink-2);border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:500;transition:.15s}
 .btn:hover{border-color:var(--teal);color:var(--teal-d)}
 .btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
 .btn.primary:hover{background:var(--teal-d)}
-.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:transparent}
+.btn.sm{padding:6px 11px;font-size:12.5px}
+.seg{display:inline-flex;background:var(--paper-2);border:1px solid var(--line-2);border-radius:8px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:7px 14px;border-radius:6px;font-size:13px;color:var(--ink-2);font-weight:500}
+.seg button.on{background:#fff;color:var(--teal-d);box-shadow:0 1px 3px rgba(0,0,0,.08);font-weight:700}
 .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px}
 .pill .dot{width:8px;height:8px;border-radius:50%}
 .p-priority{color:var(--c-priority);background:var(--bg-priority)} .p-priority .dot{background:var(--c-priority)}
 .p-observe{color:#A86E0A;background:var(--bg-observe)} .p-observe .dot{background:var(--c-observe)}
 .p-potential{color:var(--c-potential);background:var(--bg-potential)} .p-potential .dot{background:var(--c-potential)}
 .p-none{color:#6B7884;background:var(--bg-none)} .p-none .dot{background:var(--c-none)}
+.muted{color:var(--ink-3);font-size:12.5px}
 .disc{font-size:12px;color:#8A6D3B;background:#FBF3E2;border:1px solid #ECDCB8;border-radius:8px;padding:9px 12px;line-height:1.6}
 table{border-collapse:collapse;width:100%;font-size:13px}
 th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line)}
-th{font-size:12px;color:var(--ink-3);font-weight:700;background:var(--card-2)}
+th{font-size:12px;color:var(--ink-3);font-weight:700;background:var(--card-2);letter-spacing:.3px}
+td.num,th.num{text-align:right}
 tr:last-child td{border-bottom:0}
-.muted{color:var(--ink-3);font-size:12.5px}
 
-/* ============ 单人：布局 ============ */
-.single-layout{display:grid;grid-template-columns:320px 1fr;gap:18px;align-items:start}
-.dim-slider{margin-bottom:18px}
-.dim-slider .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+/* ============================================================
+   单人：输入面板
+   ============================================================ */
+.single-layout{display:grid;grid-template-columns:340px 1fr;gap:18px;align-items:start}
+.dim-slider{margin-bottom:16px}
+.dim-slider .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
 .dim-slider .nm{font-size:13.5px;font-weight:700}
-.dim-slider .val{font-family:var(--serif);font-size:20px;font-weight:700;color:var(--teal-d)}
-.dim-slider input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:5px;background:linear-gradient(90deg,var(--teal) var(--p,50%),var(--paper-2) var(--p,50%));outline:none}
-.dim-slider input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:19px;height:19px;border-radius:50%;background:#fff;border:3px solid var(--teal);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
-label.flabel{display:block;font-size:12.5px;color:var(--ink-2);font-weight:500;margin-bottom:6px}
-input[type=text]{font-family:var(--sans);font-size:13.5px;color:var(--ink);background:var(--card-2);border:1px solid var(--line-2);border-radius:7px;padding:9px 11px;width:100%;outline:none}
-input[type=text]:focus{border-color:var(--teal);background:#fff;box-shadow:0 0 0 3px var(--teal-soft)}
+.dim-slider .full{font-size:11px;color:var(--ink-3)}
+.dim-slider .val{font-family:var(--serif);font-size:18px;font-weight:700;color:var(--teal-d);min-width:34px;text-align:right}
+input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:5px;background:linear-gradient(90deg,var(--teal) var(--p,50%),var(--paper-2) var(--p,50%));outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:19px;height:19px;border-radius:50%;background:#fff;border:3px solid var(--teal);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.scale-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 10px}
+.scale-grid .q{font-size:11.5px}
+.scale-grid .q label{display:block;color:var(--ink-2);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scale-grid select{padding:6px 7px;font-size:12.5px}
+.examples{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
 
-/* 结果区 */
-.score-hero{background:linear-gradient(150deg,#0E6B63,#0A4D47);color:#fff;border-radius:10px;padding:18px;display:flex;align-items:baseline;gap:14px}
-.score-hero .lab{font-size:12px;color:#BFE0D9;letter-spacing:1px}
-.score-hero .big{font-family:var(--serif);font-size:48px;font-weight:900;line-height:1}
-.score-hero .big small{font-size:16px;font-weight:400;color:#BFE0D9}
-.score-hero .best{font-size:13px;color:#E7F4F0}
-.results-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
-.dim-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line)}
-.dim-row:last-child{border-bottom:0}
-.dim-row .nm{font-size:13.5px;font-weight:600}
-.dim-row .meta{font-size:12px;color:var(--ink-3);margin-top:2px}
-.chart{width:100%;height:300px}
-#scatter{width:100%;height:340px}
-textarea{font-family:var(--mono,monospace);font-size:12.5px;width:100%;min-height:140px;background:var(--card-2);border:1px solid var(--line-2);border-radius:8px;padding:10px;outline:none}
-#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:99}
-#toast.show{opacity:1}
-.method-section{margin-bottom:22px}
-.method-section h4{font-family:var(--serif);font-size:16px;margin-bottom:8px}
-.method-section p{font-size:13.5px;color:var(--ink-2);line-height:1.8}
+/* 概览 */
+.overview{display:grid;grid-template-columns:280px 1fr;gap:16px;margin-bottom:16px}
+.score-hero{background:linear-gradient(150deg,#0E6B63,#0A4D47);color:#fff;border-radius:10px;padding:20px;display:flex;flex-direction:column;justify-content:center}
+.score-hero .lab{font-size:12.5px;color:#BFE0D9;letter-spacing:1px}
+.score-hero .big{font-family:var(--serif);font-size:52px;font-weight:900;line-height:1.1;margin:6px 0}
+.score-hero .big small{font-size:18px;font-weight:400;color:#BFE0D9}
+.score-hero .grade{font-size:13px;color:#E7F4F0;line-height:1.6}
+#radar{width:100%;height:268px}
+/* Layer2 维度卡 */
+.dim-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.dim-card{border:1px solid var(--line);border-left:4px solid var(--c-none);border-radius:9px;padding:13px 15px;background:#fff}
+.dim-card.k-priority{border-left-color:var(--c-priority);background:linear-gradient(0deg,var(--bg-priority),#fff 60%)}
+.dim-card.k-observe{border-left-color:var(--c-observe);background:linear-gradient(0deg,var(--bg-observe),#fff 60%)}
+.dim-card.k-potential{border-left-color:var(--c-potential);background:linear-gradient(0deg,var(--bg-potential),#fff 60%)}
+.dim-card .dh{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.dim-card .dh .t{font-family:var(--serif);font-size:14.5px;font-weight:700}
+.dim-card .dh .pill{margin-left:auto}
+.metric-line{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin-bottom:7px;flex-wrap:wrap}
+.metric-line b{color:var(--ink);font-weight:700}
+.dim-card .advice{font-size:12.5px;color:var(--ink-2);background:rgba(255,255,255,.7);border-radius:7px;padding:8px 10px;line-height:1.55}
+.dim-card .advice .root{color:#A86E0A;font-weight:700}
+#scatter{width:100%;height:380px}
+.cf-wrap{overflow-x:auto}
+.cf-wrap table td.cur{background:var(--teal-soft);font-weight:700;color:var(--teal-d)}
+.legend4{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin-top:10px}
+.legend4 span{display:inline-flex;align-items:center;gap:6px}
+.legend4 i{width:11px;height:11px;border-radius:50%;display:inline-block}
+/* 报告 */
+.report-out{background:var(--card-2);border:1px solid var(--line);border-radius:8px;padding:18px 20px;font-size:13.5px;line-height:1.75;max-height:520px;overflow:auto}
+.report-out h4{font-family:var(--serif);font-size:15px;margin:14px 0 6px;color:var(--teal-d)}
+.report-out h4:first-child{margin-top:0}
+.report-out ul{padding-left:20px}.report-out li{margin:3px 0}
+.toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.empty{border:1.5px dashed var(--line-2);border-radius:10px;padding:46px 20px;text-align:center;color:var(--ink-3);background:rgba(255,255,255,.5)}
+.empty svg{width:40px;height:40px;stroke:var(--line-2);fill:none;stroke-width:1.4;margin-bottom:10px}
+
+/* 批量 */
+.batch-layout{display:grid;grid-template-columns:400px 1fr;gap:18px;align-items:start}
+.upload-zone{border:1.5px dashed var(--line-2);border-radius:10px;background:var(--card-2);padding:18px 16px;text-align:center;cursor:pointer;transition:.15s;outline:none}
+.upload-zone:hover,.upload-zone.drag,.upload-zone:focus{border-color:var(--teal);background:var(--teal-soft)}
+.upload-zone svg{width:30px;height:30px;stroke:var(--teal);fill:none;stroke-width:1.6;margin-bottom:6px}
+.uz-main{font-size:13.5px;font-weight:700;color:var(--ink)}
+.uz-sub{font-size:11.5px;color:var(--ink-3);margin-top:4px;line-height:1.6}
+.file-status{font-size:12px;margin-top:9px;color:var(--teal-d);line-height:1.5;min-height:16px}
+.file-status.err{color:#B23A3A}
+textarea{resize:vertical;min-height:230px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.55}
+.group-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.stat{border:1px solid var(--line);border-radius:9px;padding:12px 14px;background:#fff}
+.stat .n{font-family:var(--serif);font-size:26px;font-weight:900;line-height:1}
+.stat .l{font-size:12px;color:var(--ink-3);margin-top:4px;display:flex;align-items:center;gap:6px}
+.table-wrap{overflow:auto;max-height:560px}
+.tbl-badge{font-size:11px;padding:2px 8px;border-radius:12px;font-weight:700;white-space:nowrap}
+.linkbtn{border:0;background:none;color:var(--teal);font-weight:700;cursor:pointer;font-size:12.5px;padding:0}
+.linkbtn:hover{text-decoration:underline}
+
+/* 题单 */
+.sheet-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:16px}
+.check-dims{display:flex;flex-wrap:wrap;gap:8px}
+.chk{border:1px solid var(--line-2);border-radius:20px;padding:6px 13px;font-size:12.5px;cursor:pointer;user-select:none;background:#fff;color:var(--ink-2)}
+.chk.on{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:700}
+.sheet-preview{background:#fff;border:1px solid var(--line);border-radius:10px;padding:30px 36px;max-width:820px}
+.sheet-preview h3{font-family:var(--serif);font-size:20px;text-align:center;margin-bottom:4px}
+.sheet-preview .meta{font-size:12.5px;color:var(--ink-2);border-bottom:1.5px solid var(--ink);padding-bottom:10px;margin-bottom:16px}
+.q-item{margin-bottom:20px}
+.q-item .qh{font-weight:700;font-size:13.5px;margin-bottom:6px}
+.q-item .qstem{font-size:13.5px;white-space:pre-wrap}
+.q-item .ansline{border-bottom:1px dotted #B9C0C7;height:30px}
+.answer-key{margin-top:26px;border-top:2px solid var(--ink);padding-top:14px}
+.answer-key h4{font-family:var(--serif);margin-bottom:8px}
+.answer-key p{font-size:12.5px;margin:4px 0;color:var(--ink-2)}
+
+/* 方法学 */
+.method-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.layer-card{border:1px solid var(--line);border-radius:10px;background:#fff;padding:16px 18px}
+.layer-card .lt{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.layer-card .lt .ln{font-family:var(--serif);font-size:13px;font-weight:900;color:var(--teal)}
+.layer-card h4{font-family:var(--serif);font-size:15px}
+.layer-card p{font-size:13px;color:var(--ink-2);margin-top:6px}
+.quad-table td:first-child{font-weight:700}
+.quad-cell{display:flex;align-items:center;gap:7px}
+.dag-svg{width:100%;max-width:680px;height:auto}
+.note-box{border-left:4px solid var(--teal);background:var(--card-2);border-radius:0 8px 8px 0;padding:13px 16px;font-size:13px;color:var(--ink-2);margin:12px 0;line-height:1.7}
+
+/* toast */
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:#21303A;color:#fff;
+  padding:11px 20px;border-radius:9px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:99}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* 打印：隐藏全部视图，仅输出挂载到 printMount 的 .print-area 副本 */
+.print-area{display:none}
+@media print{
+  body{background:#fff}
+  .app-shell{display:block;min-width:0}
+  .sidebar,.no-print,.view{display:none !important}
+  #printMount .print-area{display:block}
+  .sheet-preview{border:0;padding:0;max-width:100%}
+  .card{box-shadow:none;border:0}
+}
+@media(max-width:1180px){
+  .app-shell{min-width:0}
+  .single-layout,.batch-layout,.overview{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
 <div class="app-shell">
-  <!-- 侧边栏 -->
+  <!-- ===================== 侧边导航 ===================== -->
   <aside class="sidebar">
     <div class="brand">
-      <div class="logo">CT</div>
-      <h1>计算思维<br>三层因果诊断</h1>
+      <div class="mark">
+        <span class="logo">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#7FC4B8" stroke-width="1.7">
+            <circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"></path>
+          </svg>
+        </span>
+        <h1>计算思维<br>三层因果诊断</h1>
+      </div>
+      <div class="sub">可解释 AI · 个性化干预工作台</div>
     </div>
-    <nav class="nav">
-      <button class="active" data-view="single"><span>01</span> 单人诊断<span class="idx">→</span></button>
-      <button data-view="batch"><span>02</span> 批量诊断<span class="idx">→</span></button>
-      <button data-view="method"><span>03</span> 方法说明<span class="idx">→</span></button>
+    <nav class="nav" id="nav">
+      <button data-route="single" class="active">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>单人诊断<span class="idx">01</span></button>
+      <button data-route="batch">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg>批量诊断<span class="idx">02</span></button>
+      <button data-route="sheet">
+        <svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M9 12h6M9 16h6M9 8h3"/></svg>干预题单<span class="idx">03</span></button>
+      <button data-route="method">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg>方法说明<span class="idx">04</span></button>
     </nav>
-    <div class="side-foot">可解释 AI · SHAP × 因果推断<br>仅供教育参考</div>
+    <div class="side-foot">
+      本地后端实时计算 · 数据不出本机<br>
+      XGBoost × TreeSHAP × 因果推断<br>
+      仅供教学研究，不作唯一决策依据
+    </div>
   </aside>
 
-  <!-- 主内容 -->
   <main class="content">
-    <!-- 视图 01：单人诊断 -->
-    <section class="view active" id="view-single">
+    <!-- ============================================================
+         视图 01：单人诊断
+         ============================================================ -->
+    <section class="view active" data-view="single">
       <div class="page-head">
-        <div class="eyebrow">VIEW 01 · SINGLE</div>
+        <div class="eyebrow">Single Diagnosis</div>
         <h2>单人三层因果诊断</h2>
-        <p>录入一名学生的五个计算思维维度得分，系统即时给出作业质量预测、反事实模拟、SHAP×个体化因果效应四分类诊断与教师报告。</p>
+        <p>录入一名学生的五个计算思维维度得分（或由 15 题量表自动聚合），系统即时给出作业质量预测、反事实模拟、SHAP×因果效应四分类诊断与教师报告。</p>
       </div>
+
       <div class="single-layout">
         <!-- 左：输入 -->
         <div class="card">
-          <div class="card-h"><h3>五维得分录入</h3></div>
+          <div class="card-h"><h3>数据录入</h3></div>
           <div class="card-b">
             <div style="margin-bottom:14px">
-              <label class="flabel">学生 ID</label>
-              <input type="text" id="sid" value="S001">
+              <label class="flabel">学生编号</label>
+              <input type="text" id="stuId" value="S001" style="max-width:160px">
             </div>
-            <div id="sliders"></div>
-            <button class="btn primary" id="runDiag" style="width:100%">开始诊断</button>
-            <div class="muted" style="margin-top:10px">得分范围 1–5，1=非常不符合，5=非常符合</div>
+            <div class="seg" style="margin-bottom:16px;width:100%">
+              <button id="modeDim" class="on">五维评分</button>
+              <button id="modeScale">15 题量表聚合</button>
+            </div>
+
+            <div id="panelDim">
+              <div id="sliders"></div>
+            </div>
+
+            <div id="panelScale" style="display:none">
+              <p class="muted" style="margin-bottom:10px">张屹计算思维量表 · A–E 作答自动换算 1–5 分并按维度取平均（分解 A1–3 / 抽象 A4–6 / 建模 A7–8 / 算法 A9–10 / 评估 A11–15）。</p>
+              <div class="scale-grid" id="scaleGrid"></div>
+              <div id="scaleAgg" style="margin-top:12px;font-size:12.5px;color:var(--teal-d);font-weight:700"></div>
+            </div>
+
+            <button class="btn primary" id="runDiag" style="width:100%;margin:6px 0 2px">开始诊断</button>
+            <div id="apiStatus" class="file-status" style="text-align:center;min-height:14px"></div>
+
+            <div style="border-top:1px solid var(--line);margin:12px 0 12px;padding-top:14px">
+              <label class="flabel">快速载入示例</label>
+              <div class="examples">
+                <button class="btn sm" data-ex="weak">偏弱样例</button>
+                <button class="btn sm" data-ex="mid">中等样例</button>
+                <button class="btn sm" data-ex="skew">偏科样例</button>
+                <button class="btn sm" data-ex="good">优秀样例</button>
+                <button class="btn sm ghost" id="resetDim">重置为 3 分</button>
+              </div>
+            </div>
           </div>
         </div>
+
         <!-- 右：结果 -->
-        <div id="result"></div>
-      </div>
-    </section>
-
-    <!-- 视图 02：批量诊断 -->
-    <section class="view" id="view-batch">
-      <div class="page-head">
-        <div class="eyebrow">VIEW 02 · BATCH</div>
-        <h2>批量诊断与分组</h2>
-        <p>每行一名学生，格式：学生ID,抽象,分解,算法设计,建模,评估（逗号分隔，第一行为表头）。逐人诊断后输出汇总与「按最优先维度」的干预分组。</p>
-      </div>
-      <div class="card">
-        <div class="card-b">
-          <textarea id="batchInput" placeholder="学生ID,抽象,分解,算法设计,建模,评估&#10;S001,2,3,4,3.5,2.5&#10;S002,4,2,3,4.5,3"></textarea>
-          <div style="margin-top:12px;display:flex;gap:10px">
-            <button class="btn primary" id="runBatch">开始批量诊断</button>
-            <button class="btn" id="exportBatch" disabled>导出 CSV</button>
+        <div id="singleResult">
+          <div class="overview">
+            <div class="score-hero">
+              <div class="lab">模型预测作业质量（后端 XGBoost 实时输出）</div>
+              <div class="big"><span id="predScore">–</span><small> 分</small></div>
+              <div class="grade" id="predGrade">设置左侧五维得分后点击「开始诊断」</div>
+            </div>
+            <div class="card"><div class="card-b" style="padding:8px 10px"><div id="radar"></div></div></div>
           </div>
-          <div id="batchResult" style="margin-top:16px"></div>
+
+          <!-- Layer2 -->
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-h">
+              <span class="tag-layer">LAYER 2</span><h3>双维度诊断：SHAP 归因 × 个体化因果效应</h3>
+              <span class="hint" id="thrLine"></span>
+            </div>
+            <div class="card-b">
+              <div class="dim-cards" id="dimCards"></div>
+              <div class="legend4">
+                <span><i style="background:var(--c-priority)"></i>优先干预：模型认为重要且干预收益高</span>
+                <span><i style="background:var(--c-observe)"></i>仅观察：重要但单独干预无效，追溯根因</span>
+                <span><i style="background:var(--c-potential)"></i>潜在有效：模型未识别但可作备选</span>
+                <span><i style="background:var(--c-none)"></i>无需关注：接近满分或双低</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 散点 -->
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-h"><span class="tag-layer">LAYER 2</span><h3>四象限诊断散点</h3>
+              <span class="hint">横轴 |SHAP| 模型归因重要性，纵轴个体化因果效应（分），虚线为自适应阈值</span></div>
+            <div class="card-b"><div id="scatter"></div></div>
+          </div>
+
+          <!-- Layer1 -->
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-h"><span class="tag-layer">LAYER 1</span><h3>反事实分析（固定其他维度，单维变化）</h3></div>
+            <div class="card-b">
+              <div class="disc">免责声明：以下为模型层面的假设模拟（CFE），仅展示「若该维度独立变化，模型预测如何改变」，并非真实因果；实际干预优先级请以 Layer 2 个体化因果效应为准。</div>
+              <div class="cf-wrap" style="margin-top:12px"><table id="cfTable"></table></div>
+            </div>
+          </div>
+
+          <!-- 报告 -->
+          <div class="card">
+            <div class="card-h"><h3>教师诊断报告</h3><span class="hint">模板强制填充，数字全部来自算法输出（100% 保真）</span></div>
+            <div class="card-b">
+              <div class="toolbar no-print">
+                <button class="btn sm" id="copyReport">复制报告</button>
+                <button class="btn sm" id="dlReport">下载 Markdown</button>
+                <button class="btn sm primary" id="printReport">打印报告</button>
+              </div>
+              <div class="report-out" id="reportOut"></div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- 视图 03：方法说明 -->
-    <section class="view" id="view-method">
+    <!-- ============================================================
+         视图 02：批量诊断
+         ============================================================ -->
+    <section class="view" data-view="batch">
       <div class="page-head">
-        <div class="eyebrow">VIEW 03 · METHOD</div>
-        <h2>三层因果可解释诊断 · 方法说明</h2>
+        <div class="eyebrow">Batch Diagnosis</div>
+        <h2>批量诊断与分组</h2>
+        <p>一次粘贴多名学生的五维得分，逐人完成三层诊断，输出汇总表与「按最优先维度」的干预分组，可导出 CSV。</p>
       </div>
+      <div class="batch-layout">
+        <div class="card">
+          <div class="card-h"><h3>上传表格或粘贴数据</h3></div>
+          <div class="card-b">
+            <div class="upload-zone" id="uploadZone" tabindex="0" role="button" aria-label="上传 Excel 或 CSV 文件">
+              <svg viewBox="0 0 24 24"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16"/></svg>
+              <div class="uz-main">点击选择，或把 Excel / CSV 文件拖到这里</div>
+              <div class="uz-sub">支持 .xlsx 与 .csv；表头需含「学生编号、抽象、分解、算法设计、建模、评估」，列顺序可不同、允许夹杂其他列。旧版 .xls 请先在 Excel 另存为 .xlsx。</div>
+              <input type="file" id="fileInput" accept=".xlsx,.csv" hidden>
+            </div>
+            <div id="fileStatus" class="file-status"></div>
+            <p class="muted" style="margin:12px 0 8px">也可直接粘贴：首行表头，逗号 / 制表符分隔，五维取值 1–5。上传后内容会回填到此处，可核对、修改后再诊断。</p>
+            <textarea id="batchInput" placeholder="学生编号,抽象,分解,算法设计,建模,评估&#10;S001,2,2,3,2,3&#10;S002,4,4,3,4,4"></textarea>
+            <div class="toolbar" style="margin:12px 0 0">
+              <button class="btn primary" id="runBatch">开始批量诊断</button>
+              <button class="btn" id="batchExample">填入示例</button>
+              <button class="btn ghost" id="clearBatch">清空</button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div id="batchEmpty" class="empty">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h16M9 13h6M9 17h4"/></svg>
+            <div>粘贴数据并点击「开始批量诊断」，这里将呈现汇总表与干预分组</div>
+          </div>
+          <div id="batchResult" style="display:none">
+            <div class="group-stats" id="groupStats"></div>
+            <div class="card">
+              <div class="card-h"><h3>诊断汇总表</h3>
+                <span class="hint"><button class="btn sm" id="dlBatchCsv">导出 CSV</button></span></div>
+              <div class="table-wrap"><table id="batchTable"></table></div>
+            </div>
+            <div class="card" style="margin-top:16px">
+              <div class="card-h"><h3>干预分组（按最优先维度）</h3><span class="hint">与原系统分组规则一致：每名学生归入其排序最靠前的优先干预维度，无优先维度者进入「综合」组</span></div>
+              <div class="card-b" id="groupList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         视图 03：干预题单
+         ============================================================ -->
+    <section class="view" data-view="sheet">
+      <div class="page-head">
+        <div class="eyebrow">Intervention Sheet</div>
+        <h2>个性化思维训练题单</h2>
+        <p>题库内置 50 道不插电母题（五维各 10 道，纸笔可做、无需电脑）。按需要训练的维度抽题，生成可打印题单，末页附教师参考答案。</p>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-h"><h3>出题设置</h3></div>
+        <div class="card-b">
+          <div class="sheet-controls">
+            <div>
+              <label class="flabel">训练维度（可多选）</label>
+              <div class="check-dims" id="dimChecks"></div>
+            </div>
+            <div>
+              <label class="flabel">每份题数（每维度）</label>
+              <select id="sheetCount"><option>3</option><option selected>5</option><option>8</option><option>10</option></select>
+            </div>
+            <div>
+              <label class="flabel">周次</label>
+              <select id="sheetWeek"></select>
+            </div>
+            <div>
+              <label class="flabel">最高难度（1易–3难）</label>
+              <select id="sheetDiff"><option value="3" selected>不限</option><option value="1">仅 1 星</option><option value="2">2 星以内</option></select>
+            </div>
+          </div>
+          <div class="toolbar" style="margin-bottom:0">
+            <button class="btn primary" id="genSheet">生成题单</button>
+            <button class="btn" id="printSheet">打印题单</button>
+          </div>
+        </div>
+      </div>
+      <div id="sheetEmpty" class="empty">
+        <svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M9 12h6M9 16h6"/></svg>
+        <div>选择训练维度并生成题单，可直接打印发给对应小组学生</div>
+      </div>
+      <div id="sheetArea" class="print-area"></div>
+    </section>
+
+    <!-- ============================================================
+         视图 04：方法说明
+         ============================================================ -->
+    <section class="view" data-view="method">
+      <div class="page-head">
+        <div class="eyebrow">Methodology</div>
+        <h2>三层因果可解释诊断 · 方法说明</h2>
+        <p>本页面说明诊断引擎的结构、因果假设、四分类规则与保真机制，并如实标注网页演示版与科研版（Python / 桌面 exe）的实现差异。</p>
+      </div>
+
       <div class="card" style="margin-bottom:16px">
         <div class="card-h"><h3>五个计算思维维度与因果 DAG</h3></div>
         <div class="card-b">
-          <p style="font-size:13.5px;color:var(--ink-2);line-height:1.8">后门调整沿 DAG 控制父节点混杂：<b>抽象 → 分解</b>、<b>抽象 → 算法设计</b>、<b>算法设计 → 建模</b>、<b>算法设计 → 评估</b>。估计某维度因果效应时，以其父维度作为协变量，剔除上游能力带来的混杂。</p>
+          <div class="row" style="align-items:center;gap:26px;flex-wrap:wrap">
+            <svg class="dag-svg" viewBox="0 0 460 240" style="flex:0 0 440px">
+              <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+                <path d="M0,0 L7,3 L0,6" fill="none" stroke="#0E6B63" stroke-width="1.4"/></marker></defs>
+              <!-- nodes -->
+              <g font-family="var(--sans)" font-size="13" text-anchor="middle">
+                <rect x="30" y="95" width="96" height="46" rx="8" fill="#E2F0ED" stroke="#0E6B63"/>
+                <text x="78" y="115" fill="#0A4D47" font-weight="700">抽象</text><text x="78" y="131" font-size="10" fill="#465863">模式识别</text>
+                <rect x="182" y="20" width="96" height="46" rx="8" fill="#fff" stroke="#D6CEBB"/>
+                <text x="230" y="40" fill="#21303A" font-weight="700">分解</text><text x="230" y="56" font-size="10" fill="#465863">问题分解</text>
+                <rect x="182" y="170" width="96" height="46" rx="8" fill="#fff" stroke="#D6CEBB"/>
+                <text x="230" y="190" fill="#21303A" font-weight="700">算法设计</text><text x="230" y="206" font-size="10" fill="#465863">步骤设计</text>
+                <rect x="334" y="95" width="96" height="46" rx="8" fill="#fff" stroke="#D6CEBB"/>
+                <text x="382" y="115" fill="#21303A" font-weight="700">建模</text><text x="382" y="131" font-size="10" fill="#465863">符号化</text>
+                <rect x="334" y="180" width="96" height="46" rx="8" fill="#fff" stroke="#D6CEBB"/>
+                <text x="382" y="200" fill="#21303A" font-weight="700">评估</text><text x="382" y="216" font-size="10" fill="#465863">调试</text>
+                <g stroke="#0E6B63" stroke-width="1.4" fill="none" marker-end="url(#ar)">
+                  <path d="M126,105 C150,90 158,66 180,52"/>
+                  <path d="M126,128 C150,150 158,176 180,186"/>
+                  <path d="M278,188 C306,176 312,150 332,140"/>
+                  <path d="M278,200 C308,205 312,210 332,210"/>
+                </g>
+              </g>
+            </svg>
+            <div style="flex:1;min-width:260px">
+              <p style="font-size:13.5px;color:var(--ink-2);line-height:1.8">后门调整沿 DAG 控制父节点混杂：<b>抽象 → 分解</b>、<b>抽象 → 算法设计</b>、<b>算法设计 → 建模</b>、<b>算法设计 → 评估</b>。估计某维度因果效应时，以其父维度作为协变量，剔除上游能力带来的混杂。</p>
+              <table style="margin-top:12px">
+                <tr><th>维度（全称）</th><th>量表题项</th><th>因果父节点（后门调整协变量）</th></tr>
+                <tr><td>抽象 · 模式识别与抽象</td><td>A4–A6</td><td>无（DAG 根节点）</td></tr>
+                <tr><td>分解 · 问题分解</td><td>A1–A3</td><td>抽象</td></tr>
+                <tr><td>算法设计 · 算法与步骤设计</td><td>A9–A10</td><td>抽象</td></tr>
+                <tr><td>建模 · 数学建模与符号化</td><td>A7–A8</td><td>算法设计</td></tr>
+                <tr><td>评估 · 方案评估与调试</td><td>A11–A15</td><td>算法设计</td></tr>
+              </table>
+              <p class="muted" style="margin-top:8px">群体因果效应、SHAP 与两条自适应阈值均由后端在参考模型上实时估计，每次诊断随结果返回，前端不写死任何数值。</p>
+            </div>
+          </div>
         </div>
       </div>
+
+      <div class="method-grid" style="margin-bottom:16px">
+        <div class="layer-card">
+          <div class="lt"><span class="ln">LAYER 1</span><h4>反事实分析 CFE</h4></div>
+          <p>固定其他维度，把单一维度依次设为 1–5，观察模型预测作业质量的变化，给出「若提至满分」增益最大的维度。属模型假设模拟，不等于真实因果。</p>
+        </div>
+        <div class="layer-card">
+          <div class="lt"><span class="ln">LAYER 2</span><h4>SHAP × 因果效应双维度</h4></div>
+          <p>SHAP 衡量「模型认为该维度对这个学生有多重要」；群体因果效应 × 个体提升空间 headroom=max(0,5−得分) 得到个体化预期收益。两者按自适应阈值划成四象限。</p>
+        </div>
+        <div class="layer-card">
+          <div class="lt"><span class="ln">LAYER 3</span><h4>ITE 个体处理效应</h4></div>
+          <p>需前后测准实验数据（实验组 / 对照组），用 X-Learner / T-Learner 估计「对这名学生干预是否有效」。本网页版不涉及，科研版 Python 引擎支持。</p>
+        </div>
+      </div>
+
       <div class="card" style="margin-bottom:16px">
-        <div class="card-h"><h3>四象限分类规则</h3></div>
+        <div class="card-h"><h3>四分类决策规则（含 headroom 个体化调制）</h3></div>
         <div class="card-b">
-          <table>
-            <tr><th>条件</th><th>分类</th><th>教学建议</th></tr>
-            <tr><td>|SHAP| 高 且 个体化效应高</td><td><span class="pill p-priority"><span class="dot"></span>优先干预</span></td><td>立即安排专项训练</td></tr>
-            <tr><td>|SHAP| 高 但 个体化效应低</td><td><span class="pill p-observe"><span class="dot"></span>仅观察</span></td><td>沿 DAG 追溯薄弱父维度，先练根因</td></tr>
-            <tr><td>|SHAP| 低 但 个体化效应高</td><td><span class="pill p-potential"><span class="dot"></span>潜在有效</span></td><td>作为二级备选干预目标</td></tr>
-            <tr><td>|SHAP| 低 且 个体化效应低 / 接近满分</td><td><span class="pill p-none"><span class="dot"></span>无需关注</span></td><td>维持现有教学方式</td></tr>
+          <table class="quad-table">
+            <tr><th>条件</th><th>分类</th><th>含义与动作</th></tr>
+            <tr><td><span class="quad-cell"><i style="width:10px;height:10px;border-radius:50%;background:var(--c-priority);display:inline-block"></i>|SHAP| 高 且 个体化效应高</span></td><td><span class="pill p-priority"><span class="dot"></span>优先干预</span></td><td>立即安排该维度专项训练，给出预计提分</td></tr>
+            <tr><td><span class="quad-cell"><i style="width:10px;height:10px;border-radius:50%;background:var(--c-observe);display:inline-block"></i>|SHAP| 高 但 个体化效应低</span></td><td><span class="pill p-observe"><span class="dot"></span>仅观察</span></td><td>单独干预无效；沿 DAG 追溯薄弱父维度（父维度 &lt;3 分），先练根因</td></tr>
+            <tr><td><span class="quad-cell"><i style="width:10px;height:10px;border-radius:50%;background:var(--c-potential);display:inline-block"></i>|SHAP| 低 但 个体化效应高</span></td><td><span class="pill p-potential"><span class="dot"></span>潜在有效</span></td><td>模型未突出但干预可能有效，作为二级备选</td></tr>
+            <tr><td><span class="quad-cell"><i style="width:10px;height:10px;border-radius:50%;background:var(--c-none);display:inline-block"></i>双低，或 headroom &lt; 0.5</span></td><td><span class="pill p-none"><span class="dot"></span>无需关注</span></td><td>接近满分（≥4.5）提升空间不足半格，或当前表现正常</td></tr>
           </table>
-          <div class="disc" style="margin-top:12px">个体化调制用于消除「满分维度仍建议干预」的生态谬误：群体因果效应（每 1 分边际）乘以该学生的提升空间 headroom = max(0, 5 − 得分)，才是属于这个个体的预期收益。</div>
+          <div class="note-box">个体化调制用于消除「满分维度仍建议干预」的生态谬误：群体因果效应只代表平均每 1 分的边际作用，乘以该学生的提升空间 headroom 后，才是属于这个个体的预期收益。</div>
         </div>
       </div>
+
       <div class="card">
-        <div class="card-h"><h3>与科研版的关系</h3></div>
-        <div class="card-b">
-          <p style="font-size:13.5px;color:var(--ink-2);line-height:1.8">本工作台的后端即科研版引擎：<b>XGBoost 预测 + TreeSHAP 归因 + 后门调整因果推断</b>。诊断流程、维度映射、因果 DAG、提升空间调制、四分类规则与原项目完全一致。正式实验请在后端加载真实前测数据训练的模型。</p>
+        <div class="card-h"><h3>保真机制与网页版边界</h3></div>
+        <div class="card-b" style="font-size:13.5px;line-height:1.9;color:var(--ink-2)">
+          <p><b style="color:var(--ink)">前后端分工（本页面为纯渲染前端）：</b>前端只负责采集五维 / 量表、调用接口与渲染，<b>不内置任何诊断公式、权重或阈值</b>；作业质量预测、TreeSHAP 归因、后门调整因果效应、自适应阈值与四分类全部由本地 FastAPI 后端（<code>backend.py</code>，XGBoost + TreeSHAP）实时计算并以 JSON 返回。数据仅在本机 127.0.0.1 往返，不上传外网。</p>
+          <p style="margin-top:8px"><b style="color:var(--ink)">三层约束保真：</b>① 报告中所有得分 / SHAP / 因果效应 / 分类 / 建议文字直接取自后端算法输出，前端不改写；② 大模型在科研版中仅做语言润色，不得改动任何数字与分类；③ 自动保真度校验，不通过即回退模板。本前端不接入大模型，展示的是 100% 模板保真结果。</p>
+          <p style="margin-top:8px"><b style="color:var(--ink)">启动后端：</b>在项目目录执行 <code>python -m uvicorn backend:app --host 127.0.0.1 --port 8000</code>，再通过 <code>http://localhost:8000/</code> 访问本页面（同源调用接口）。正式实验 / 论文请改为在真实前测数据上训练模型（后端 <code>train_on_data</code>）。</p>
+          <p class="disc" style="margin-top:10px">本报告基于可解释 AI 分析，仅供参考，不构成教育决策的唯一依据。</p>
         </div>
       </div>
     </section>
+
+    <!-- 打印用题单挂载点 -->
+    <div id="printMount"></div>
   </main>
 </div>
-<div id="toast"></div>
+<div class="toast" id="toast"></div>
 
 <script>
-/* ============ 工具 ============ */
-const ORDER = ['抽象','分解','算法设计','建模','评估'];
-const CAT_STYLE = {'优先干预':'p-priority','仅观察':'p-observe','潜在有效':'p-potential','无需关注':'p-none'};
-const CAT_KEY = {'优先干预':'✅','仅观察':'⚠️','潜在有效':'💡','无需关注':'➖'};
-function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
-function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-function pill(cat){return `<span class="pill ${CAT_STYLE[cat]}"><span class="dot"></span>${CAT_KEY[cat]} ${esc(cat)}</span>`;}
+/* ============================================================
+   一、领域常量（与原项目 completeV6 / scale_data / intervention 对齐）
+   ============================================================ */
+const ORDER=['抽象','分解','算法设计','建模','评估'];
+const FULL={抽象:'模式识别与抽象',分解:'问题分解',算法设计:'算法与步骤设计',建模:'数学建模与符号化',评估:'方案评估与调试'};
+const DIM_HINT={
+  抽象:'发现规律、提炼共性与本质特征',
+  分解:'把复杂任务拆成有序的小步骤',
+  算法设计:'设计清晰、可执行、高效的步骤',
+  建模:'用符号、图表、式子表达问题结构',
+  评估:'检验、比较、反思与优化方案'};
+// 后门调整 DAG：父节点（仅用于方法说明的静态结构展示）
+const PARENTS={抽象:[],分解:['抽象'],算法设计:['抽象'],建模:['算法设计'],评估:['算法设计']};
+// 量表题项映射（utils/scale_data.py，第五节：量表聚合由前端完成）
+const DIM_ITEMS={分解:['A1','A2','A3'],抽象:['A4','A5','A6'],建模:['A7','A8'],算法设计:['A9','A10'],评估:['A11','A12','A13','A14','A15']};
+// 量表题目按自然题号 A1→A15 排列（与 scale_data.ALL_ITEMS 一致）；维度归属由 DIM_ITEMS 反查
+const ALL_ITEMS=Array.from({length:15},(_,i)=>'A'+(i+1));
+const ANS_TXT={1:'A 完全不符合',2:'B 比较不符合',3:'C 一般',4:'D 比较符合',5:'E 完全符合'};
 
-/* ============ 导航 ============ */
-document.querySelectorAll('.nav button').forEach(b=>{
-  b.addEventListener('click',()=>{
-    document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-    document.getElementById('view-'+b.dataset.view).classList.add('active');
-    if(window.__charts) window.__charts.forEach(c=>c.resize());
+const CAT={priority:{key:'priority',label:'优先干预',cls:'k-priority',pill:'p-priority',color:'#2F9E6E'},
+  observe:{key:'observe',label:'仅观察',cls:'k-observe',pill:'p-observe',color:'#D08A12'},
+  potential:{key:'potential',label:'潜在有效',cls:'k-potential',pill:'p-potential',color:'#2F7FB8'},
+  none:{key:'none',label:'无需关注',cls:'k-none',pill:'p-none',color:'#98A5B0'}};
+
+/* ============================================================
+   二、内置题库（data/question_bank.json，50 道母题全量内嵌）
+   ============================================================ */
+const BANK={"抽象":[
+{"id":"abs-001","type":"找规律","stem":"观察数列：2，4，8，16，___，请写出下一个数，并说说你是怎么想的。","answer":"32（每次乘以 2）","hint":"看看相邻两个数之间是什么关系。","difficulty":1},
+{"id":"abs-002","type":"找规律","stem":"字母按顺序排列：A，C，E，G，___，请填下一个字母。","answer":"I（每隔一个字母取一个）","hint":"把 26 个英文字母写出来，看看这几个字母的位置。","difficulty":1},
+{"id":"abs-003","type":"分类","stem":"下列物品中有一个与其他不同类，请找出来并说明理由：苹果、香蕉、白菜、橘子、西瓜。","answer":"白菜（是蔬菜，其余是水果）","hint":"想一想它们分别属于哪一大类。","difficulty":1},
+{"id":"abs-004","type":"找共同点","stem":"请说出下面这些事物有什么共同点：尺子、圆规、三角板、量角器。","answer":"都是测量或绘图工具（学习用品/几何工具）","hint":"想一想它们分别在什么课上、用来做什么。","difficulty":2},
+{"id":"abs-005","type":"找规律","stem":"观察数列：1，1，2，3，5，8，___，请写出下一个数。","answer":"13（从第 3 项起，每一项等于前两项之和）","hint":"看每个数是不是由前面某两个数相加得到的。","difficulty":2},
+{"id":"abs-006","type":"找规律","stem":"观察图形序列：○ △ □ ○ △ □ ○ △ ___，下一个图形是什么？","answer":"□（三个图形循环出现）","hint":"找一找图形出现的循环规律。","difficulty":1},
+{"id":"abs-007","type":"找规律","stem":"观察数列：1，3，6，10，15，___，请写出下一个数。","answer":"21（相邻两项的差依次是 2、3、4、5、6）","hint":"先算相邻两个数的差，看看差有什么规律。","difficulty":2},
+{"id":"abs-008","type":"找共同点","stem":"请说出下面这些事物有什么共同点：自行车、汽车、火车、飞机。","answer":"都是交通工具（都能载人从一个地方到另一个地方）","hint":"想一想它们都用来做什么。","difficulty":1},
+{"id":"abs-009","type":"分类","stem":"请把下列词语分成两类，并说明你的分类标准：足球、篮球、钢琴、羽毛球、小提琴、乒乓球。","answer":"球类：足球、篮球、羽毛球、乒乓球；乐器：钢琴、小提琴（按运动器材/乐器分）","hint":"想一想哪些是运动器材，哪些是乐器。","difficulty":2},
+{"id":"abs-010","type":"找规律","stem":"观察：甲、乙、丙、甲、乙、丙、甲、乙、___，下一个是什么字？","answer":"丙（三个字循环出现）","hint":"这是三个字的循环排列。","difficulty":1}],
+"分解":[
+{"id":"dec-001","type":"拆解步骤","stem":"请把「从起床到出门上学」这件事拆解成至少 6 个小步骤，按顺序写出来。","answer":"起床→穿衣→洗漱→吃早饭→收拾书包→出门（答案合理即可）","hint":"想一想从睁眼到出门，你依次做了哪些事。","difficulty":1},
+{"id":"dec-002","type":"拆解任务","stem":"班级要举办一次元旦联欢会，请把这个大任务拆解成至少 5 个子任务，并说明谁负责。","answer":"如：定场地、排节目、做道具、买零食、主持（答案合理即可）","hint":"从「准备、进行、收尾」三个阶段来想。","difficulty":2},
+{"id":"dec-003","type":"步骤排序","stem":"下列做作业的步骤被打乱了，请把它们排成合理的顺序：\n① 检查答案 ② 读题理解 ③ 动手作答 ④ 准备文具书本。","answer":"④→②→③→①","hint":"先想第一步应该做什么，最后一步做什么。","difficulty":1},
+{"id":"dec-004","type":"拆解问题","stem":"应用题：小明有 50 元，买 3 本每本 8 元的笔记本，还剩多少钱？请写出你的解题步骤（至少 3 步）。","answer":"① 算总价 3×8=24 ② 用 50-24=26 ③ 答：剩 26 元","hint":"先算什么，再算什么？分步写出来。","difficulty":1},
+{"id":"dec-005","type":"拆解任务","stem":"「写一篇 800 字的作文」看起来很难，请把它拆解成 4 个小步骤，让任务变简单。","answer":"如：① 列提纲 ② 写开头 ③ 写主体 ④ 写结尾并检查（答案合理即可）","hint":"把一个「大」任务切成几个「小」任务。","difficulty":2},
+{"id":"dec-006","type":"拆解任务","stem":"班级要组织一次春游，请从「准备、进行、收尾」三个阶段，各写出至少 2 个小任务。","answer":"准备：定地点、定时间、通知家长；进行：集合、游玩、午餐；收尾：清点人数、清理垃圾、安全返校（合理即可）","hint":"按时间顺序分阶段想。","difficulty":2},
+{"id":"dec-007","type":"拆解目标","stem":"「提高英语成绩」是个大目标，请把它拆解成 4 个可以每天做的小任务。","answer":"如：每天背 10 个单词、听 10 分钟英语、每周一篇阅读、每天读 10 分钟课文（合理即可）","hint":"把「提高成绩」拆成听、说、读、写等具体行动。","difficulty":2},
+{"id":"dec-008","type":"步骤排序","stem":"下列泡方便面的步骤被打乱，请排序：① 倒开水 ② 撕开包装 ③ 放入调料包 ④ 盖上等 3 分钟 ⑤ 把面饼放入碗中。","answer":"②→⑤→③→①→④","hint":"先做什么？最后做什么？按时间顺序排。","difficulty":1},
+{"id":"dec-009","type":"流程填空","stem":"下面是「从家到学校」的流程，请补全空缺：起床 → 洗漱 → ___ → 吃早饭 → ___ → 到校。","answer":"穿衣、出门（答案合理即可）","hint":"想一想起床后到吃早饭之间还做了什么。","difficulty":1},
+{"id":"dec-010","type":"拆解任务","stem":"学校大扫除任务有：扫地、擦窗、拖地、擦黑板、倒垃圾、整理桌椅。请把这 6 个任务分给 3 个同学，让每人工作量差不多，并说明分工理由。","answer":"如：同学1扫地+拖地，同学2擦窗+擦黑板，同学3倒垃圾+整理桌椅（合理即可）","hint":"先数一共几个任务，再平均分配。","difficulty":2}],
+"算法设计":[
+{"id":"alg-001","type":"迷宫","stem":"画一个 3×3 的方格迷宫，左上角是起点，右下角是终点，中间有 2 格是墙不能通过。请用箭头（→↓←↑）写出从起点到终点的一条路线。","answer":"示例：→→↓↓（具体路径取决于墙的位置，答案合理即可）","hint":"先观察哪些格子能走，再一步步移动。","difficulty":2},
+{"id":"alg-002","type":"排序","stem":"请把 5 个数 7、3、9、1、5 按从小到大排序，并写出你比较和交换的步骤（至少写出关键几步）。","answer":"1,3,5,7,9（如先找最小 1 放最前，再找 3……）","hint":"每次先找出最小的数放到最前面。","difficulty":2},
+{"id":"alg-003","type":"指令序列","stem":"一个小机器人站在起点（A 格），只能执行「前进一格」「左转」「右转」三个指令。请写出让它从 A 格走到 B 格（正前方 2 格、再右转方向 1 格处）的指令序列。","answer":"前进、前进、右转、前进（答案合理即可）","hint":"先想清 B 格在 A 格的什么方向，再分解成几步。","difficulty":3},
+{"id":"alg-004","type":"条件判断","stem":"用「如果…就…否则…」写一段规则，描述：坐公交车时，上车后如果有座位就坐下，没有座位就站着扶稳。","answer":"如果（有座位）就（坐下）；否则（站着扶稳）","hint":"先想「判断什么条件」，再想成立与否分别做什么。","difficulty":1},
+{"id":"alg-005","type":"循环","stem":"观察规律：三角形每多一条边，内角和增加 180°。三角形内角和 180°，那么五边形内角和是多少？","answer":"540°（180° + 2×180° = 540°）","hint":"从三角形到五边形，边数增加了 2。","difficulty":3},
+{"id":"alg-006","type":"找最值","stem":"有 5 个数：8、3、12、7、5。请写出「找出最大的数」的步骤（你分几步做？每一步在做什么？）。","answer":"先记住第一个数 8 为最大，依次与后面比较，遇到更大的就更新（体现逐个比较即可）","hint":"先记住一个数，再逐个和它比较。","difficulty":2},
+{"id":"alg-007","type":"贪心策略","stem":"要用 1 元、5 角、1 角的硬币凑出 1 元 7 角，怎样用最少的硬币？请写出你选择硬币的步骤。","answer":"先选 1 元剩 7 角；再选 5 角剩 2 角；再选 2 个 1 角。共 4 枚","hint":"每次先选面值最大的硬币。","difficulty":2},
+{"id":"alg-008","type":"规律累加","stem":"第 1 行画 1 个☆，第 2 行画 2 个☆，第 3 行画 3 个☆。那么第 5 行画几个☆？画到第 5 行一共画了多少个☆？","answer":"第 5 行 5 个；一共 1+2+3+4+5=15 个","hint":"先看每行个数的规律，再算总和。","difficulty":2},
+{"id":"alg-009","type":"排序","stem":"把 4 个数 5、1、4、2 从小到大排。写出「每次只交换相邻两个数」的排序过程（至少写出关键交换步骤）。","answer":"如：5和1交换→1,5,4,2；5和4交换→1,4,5,2；5和2交换→1,4,2,5；4和2交换→1,2,4,5（合理即可）","hint":"每次比较相邻两个，大的往后移。","difficulty":3},
+{"id":"alg-010","type":"并行优化","stem":"烧水要 8 分钟，煮面要 5 分钟，准备碗筷要 2 分钟。烧水和煮面能同时进行吗？怎样安排能让「吃上面」最快？最少几分钟？","answer":"先烧水 8 分钟（同时准备碗筷），水开后煮面 5 分钟；共 13 分钟","hint":"想一想哪些事能同时做，哪些必须按顺序。","difficulty":3}],
+"建模":[
+{"id":"mod-001","type":"流程图","stem":"请用方框和箭头，画出「早上去学校」的流程图：起床 → 洗漱 → 吃早饭 → 出门 → 到校。","answer":"用 5 个方框依次相连，箭头指向下一个步骤（合理即可）","hint":"每个步骤写在一个方框里，用箭头表示先后顺序。","difficulty":1},
+{"id":"mod-002","type":"表格整理","stem":"小明一周的运动时间如下：周一 30 分钟、周三 40 分钟、周五 50 分钟、周日 60 分钟。请用一张表格整理这些数据。","answer":"两列表：星期 / 时间，四行数据（合理即可）","hint":"先确定表格有几列，再逐行填写。","difficulty":1},
+{"id":"mod-003","type":"连线匹配","stem":"请把下列概念与含义连线：左：A 正方形 B 三角形 C 圆形；右：① 三条边 ② 四条等边 ③ 没有边","answer":"A-②，B-①，C-③","hint":"回想每个图形的边数特征。","difficulty":1},
+{"id":"mod-004","type":"关系图","stem":"小明和小红是朋友，小红和小刚是朋友，小刚和小丽是朋友。请用圆圈（人）和线（朋友关系）画出他们的关系图。","answer":"4 个圆圈，小明—小红—小刚—小丽依次连线（合理即可）","hint":"每个人画一个圆圈，是朋友就连一条线。","difficulty":2},
+{"id":"mod-005","type":"符号化","stem":"把这句话翻译成数学式子：「一个数先乘以 2，再加上 3，结果是 11。」（用 x 表示这个数）","answer":"2x + 3 = 11（解得 x = 4）","hint":"把「一个数」写成 x，按顺序写出来。","difficulty":2},
+{"id":"mod-006","type":"坐标定位","stem":"教室座位用「第几排第几列」表示。小明在第 3 排第 2 列，记作 (3,2)。那么 (5,4) 表示第几排第几列？小红在第 2 排第 5 列怎么表示？","answer":"(5,4)=第 5 排第 4 列；小红=(2,5)","hint":"第一个数表示排，第二个数表示列。","difficulty":1},
+{"id":"mod-007","type":"符号化","stem":"把这句话翻译成数学式子：「一个数除以 4 再减 2，结果是 3。」（用 x 表示，并求出 x）","answer":"x/4 - 2 = 3，解得 x = 20","hint":"按顺序把「除以 4」「减 2」「等于 3」写出来。","difficulty":2},
+{"id":"mod-008","type":"集合关系","stem":"全班 40 人，喜欢数学的 25 人，喜欢体育的 20 人，两个都喜欢的 10 人。请画两个圆圈表示关系，并回答：两个都不喜欢的有几人？","answer":"只数学 15、只体育 10、都喜欢 10、都不喜欢 40-15-10-10=5 人","hint":"重叠部分是「都喜欢」，先算各部分人数。","difficulty":3},
+{"id":"mod-009","type":"表格对比","stem":"套餐 A：月租 30 元每分钟 0.1 元；套餐 B：月租 0 元每分钟 0.25 元。请画表对比打 100、200 分钟时两种套餐各花多少、哪种划算？","answer":"100 分钟：A=40、B=25，B 划算；200 分钟：A=50、B=50，一样","hint":"先分别算两种套餐费用再比较。","difficulty":3},
+{"id":"mod-010","type":"层级图","stem":"学校下面有 3 个年级，每个年级有 2 个班。请用「树状图」从学校开始一层层画出这个结构。","answer":"学校 → 3 个年级 → 每个年级 2 个班，共 6 个班（画出层级即可）","hint":"最上面是学校，下一层年级，再下一层班。","difficulty":2}],
+"评估":[
+{"id":"eva-001","type":"找错误","stem":"小明这样算：35 + 48 = 73。请判断对不对，如果错了，指出错误并改正。","answer":"错，35+48=83（个位 5+8=13 进位算错）","hint":"个位 5+8 等于多少？要不要进位？","difficulty":1},
+{"id":"eva-002","type":"判断优劣","stem":"从家到学校有两条路：路线 A 路程近但红灯多（约 15 分钟）；路线 B 路程远但一路畅通（约 12 分钟）。你建议走哪条？为什么？","answer":"建议 B，因为实际用时更短（合理即可）","hint":"比较的是「路程」还是「时间」？","difficulty":1},
+{"id":"eva-003","type":"优化步骤","stem":"小华做作业：① 找作业本 ② 写作业 ③ 才想起没带课本 ④ 回教室拿课本。请问哪一步可以提前避免？怎么优化？","answer":"应在写作业前先检查是否带齐书本，避免步骤③④（合理即可）","hint":"想想哪一步是因为「前面没做好」才产生的。","difficulty":2},
+{"id":"eva-004","type":"判断对错","stem":"判断题并说明理由：「两个三角形一定能拼成一个正方形。」","answer":"错，只有两个完全相同的等腰直角三角形才能拼成正方形","hint":"随便两个三角形都行吗？举反例试试。","difficulty":2},
+{"id":"eva-005","type":"反思检查","stem":"考完试后，怎样检查答案才能尽量少出错？请列出至少 3 种检查方法。","answer":"如：重新算一遍、代入验算、检查单位、检查漏题、换个方法验证（合理即可）","hint":"从「计算」「书写」「题意」三个角度想。","difficulty":2},
+{"id":"eva-006","type":"找逻辑错误","stem":"小红说：「因为所有的狗都有四条腿，所以所有四条腿的动物都是狗。」这句话推理错在哪里？","answer":"不能反推，猫、牛也有四条腿（举反例即可）","hint":"想一想除了狗，还有什么动物也有四条腿。","difficulty":2},
+{"id":"eva-007","type":"方案权衡","stem":"买文具：A 店全场 8 折；B 店满 50 减 10。买 60 元哪家便宜？买 40 元呢？请计算说明。","answer":"60 元：A=48、B=50，A 便宜；40 元：A=32、B=40（不减），A 便宜","hint":"分别算两家实际花多少再比较。","difficulty":2},
+{"id":"eva-008","type":"找冗余","stem":"小刚做数学题：① 读题 ② 先写下题目 ③ 找已知条件 ④ 列式计算 ⑤ 验算 ⑥ 抄到另一张纸上。哪些步骤多余？为什么？","answer":"②和⑥多余（抄题不必要，除非老师要求）（合理即可）","hint":"想一想每一步是不是真的有必要。","difficulty":2},
+{"id":"eva-009","type":"代入验算","stem":"小华算出方程 2x + 3 = 9 的解是 x = 3。请帮他验算：把 x=3 代入，左边等于多少？等于右边吗？","answer":"左边 = 2×3+3 = 9 = 右边，所以 x=3 正确","hint":"把 x 的值代回原式算左边。","difficulty":1},
+{"id":"eva-010","type":"权衡利弊","stem":"明天考试，今晚两种选择：① 熬夜复习到凌晨 2 点；② 正常复习、11 点睡。请分别写出利弊并给出建议。","answer":"①利：多复习，弊：睡眠不足影响发挥；②利：精神好，弊：时间略少。建议②（合理即可）","hint":"从「复习效果」和「考试状态」两个角度权衡。","difficulty":2}]};
+
+/* ============================================================
+   三、诊断 API 客户端 + 结果适配层（前端不实现任何诊断算法）
+   ============================================================ */
+const API_BASE=''; // 同源：经 http://localhost:8000 由 FastAPI 提供页面与接口
+// 后端 layer2.优先级 0..3 → 前端样式；分类文案完全以后端为准，前端不自造分类
+const CAT_BY_PRI={0:CAT.priority,1:CAT.observe,2:CAT.potential,3:CAT.none};
+async function postJSON(path,body){
+  const res=await fetch(API_BASE+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!res.ok)throw new Error('后端返回异常 HTTP '+res.status);
+  return await res.json();
+}
+const apiDiagnose=(student_id,scores)=>postJSON('/api/diagnose',{student_id,scores});
+const apiBatch=students=>postJSON('/api/batch',{students});
+function clampNum(v,lo,hi){v=parseFloat(v);if(isNaN(v))v=(lo+hi)/2;return Math.max(lo,Math.min(hi,v));}
+// 后端单个诊断 JSON → 渲染层统一结构；layer1 键名是动态的「维度+假设值」
+function normalize(d){
+  const order=(d.causal_order&&d.causal_order.length)?d.causal_order:ORDER;
+  const dimNames=d.dim_names||FULL;
+  const rows=(d.layer2||[]).map(r=>{
+    const pri=+r.优先级;
+    return {dim:r.维度,score:+r.得分,shap:+r.SHAP,absShap:Math.abs(+r.SHAP),
+      head:Math.max(0,5-(+r.得分)),ceInd:+r.因果效应,pri,
+      cat:CAT_BY_PRI[pri]||CAT.none,advice:r.建议,raw:r.分类};
+  }); // 后端已按优先级升序返回，前端不再重排
+  const cf=(d.layer1||[]).map(x=>({dim:x.dim,current:+x.current,
+    series:x.series.map(s=>{const v=s[x.dim+'假设值'];return {v:+v,pred:+s.预测成绩,delta:+s.相比当前变化};})}));
+  return {id:d.student_id,base:+d.base_pred,scores:d.scores,order,dimNames,
+    shapThr:+d.shap_threshold,ceThr:+d.ce_threshold,
+    cfBest:{dim:d.cf_best_dim,gain:+d.cf_best_gain},rows,cf};
+}
+function gradeOf(p){ // 仅 hero 定性描述，不参与任何诊断分类 / 阈值
+  if(p>=88) return '表现优秀，整体计算思维扎实';
+  if(p>=75) return '表现良好，存在局部可提升点';
+  if(p>=60) return '表现中等，若干维度需要专项训练';
+  return '基础薄弱，建议优先补强核心维度';
+}
+
+/* ============================================================
+   四、状态与路由
+   ============================================================ */
+const state={mode:'dim',scores:{抽象:3,分解:3,算法设计:3,建模:3,评估:3},scaleAns:{},current:null,
+  batch:[],sheetSel:new Set(ORDER),lastSheet:null};
+const EXAMPLES={weak:{抽象:2,分解:2,算法设计:3,建模:2,评估:3},
+  mid:{抽象:3,分解:3,算法设计:3,建模:3,评估:3},
+  skew:{抽象:2,分解:4,算法设计:2,建模:4,评估:4},
+  good:{抽象:5,分解:4.5,算法设计:5,建模:4.5,评估:4}};
+
+function go(route){
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.dataset.view===route));
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.route===route));
+  location.hash='#/'+route;
+  if(route==='single') setTimeout(resizeCharts,60);
+}
+document.getElementById('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b)go(b.dataset.route);});
+window.addEventListener('hashchange',()=>{const r=(location.hash||'#/single').replace('#/','')||'single';
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.dataset.view===r));});
+
+let radarChart=null,scatterChart=null;
+function resizeCharts(){ if(radarChart)radarChart.resize(); if(scatterChart)scatterChart.resize(); }
+new ResizeObserver(()=>resizeCharts()).observe(document.querySelector('.content'));
+
+/* toast */
+let toastTimer;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),1800);}
+function download(name,text,type){const blob=new Blob([text],{type:type||'text/plain;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href);}
+
+/* ============================================================
+   五、单人视图
+   ============================================================ */
+function buildSliders(){
+  const wrap=document.getElementById('sliders');wrap.innerHTML='';
+  ORDER.forEach(k=>{
+    const v=state.scores[k];
+    const div=document.createElement('div');div.className='dim-slider';
+    div.innerHTML=`<div class="top"><div><span class="nm">${k}</span> <span class="full">${FULL[k]}</span></div>
+      <span class="val num" id="val-${k}">${v.toFixed(1)}</span></div>
+      <input type="range" min="1" max="5" step="0.5" value="${v}" data-k="${k}" aria-label="${k}">
+      <div class="full">${DIM_HINT[k]}</div>`;
+    wrap.appendChild(div);
   });
-});
+  wrap.querySelectorAll('input[type=range]').forEach(r=>{
+    r.addEventListener('input',()=>{state.scores[r.dataset.k]=parseFloat(r.value);
+      document.getElementById('val-'+r.dataset.k).textContent=parseFloat(r.value).toFixed(1);
+      paintRange(r); scheduleSingle();});
+    paintRange(r);
+  });
+}
+function paintRange(r){const p=(r.value-1)/4*100;r.style.setProperty('--p',p+'%');}
 
-/* ============ 单人诊断：滑块 ============ */
-const scores = {抽象:3,分解:3,算法设计:3,建模:3,评估:3};
-const slidersBox = document.getElementById('sliders');
-ORDER.forEach(k=>{
-  const wrap=document.createElement('div');wrap.className='dim-slider';
-  wrap.innerHTML=`<div class="top"><span class="nm">${k}</span><span class="val">3.0</span></div><input type="range" min="1" max="5" step="0.1" value="3">`;
-  const inp=wrap.querySelector('input'), val=wrap.querySelector('.val');
-  inp.addEventListener('input',()=>{scores[k]=+inp.value;val.textContent=(+inp.value).toFixed(1);inp.style.setProperty('--p',((inp.value-1)/4*100)+'%');});
-  inp.dispatchEvent(new Event('input'));
-  slidersBox.appendChild(wrap);
-});
+function buildScale(){
+  const g=document.getElementById('scaleGrid');g.innerHTML='';
+  ALL_ITEMS.forEach(it=>{
+    const dim=ORDER.find(d=>DIM_ITEMS[d].includes(it));
+    const d=document.createElement('div');d.className='q';
+    let opts='<option value="">未答</option>';
+    for(let s=1;s<=5;s++) opts+=`<option value="${s}">${ANS_TXT[s]}</option>`;
+    d.innerHTML=`<label>${it} · ${dim}</label><select data-item="${it}">${opts}</select>`;
+    g.appendChild(d);
+  });
+  g.querySelectorAll('select').forEach(s=>s.addEventListener('change',()=>{
+    state.scaleAns[s.dataset.item]= s.value?parseInt(s.value):null; aggregateScale();
+  }));
+}
+function aggregateScale(){
+  const agg={},missing=[];
+  ORDER.forEach(k=>{const vals=DIM_ITEMS[k].map(it=>state.scaleAns[it]).filter(v=>v!=null);
+    if(vals.length){agg[k]=vals.reduce((a,b)=>a+b,0)/vals.length;}else{agg[k]=3;missing.push(k);}
+  });
+  state.scores=agg;
+  document.getElementById('scaleAgg').innerHTML='聚合五维：'+ORDER.map(k=>`${k} ${agg[k].toFixed(2)}`).join('　')+
+    (missing.length?`<br><span style="color:#A86E0A;font-weight:400">（${missing.join('、')} 暂无作答，暂按 3 分计）</span>`:'');
+  scheduleSingle();
+}
 
-/* ============ 诊断调用与渲染 ============ */
-let radarChart=null, scatterChart=null;
-window.__charts=[];
+document.getElementById('modeDim').addEventListener('click',()=>setMode('dim'));
+document.getElementById('modeScale').addEventListener('click',()=>setMode('scale'));
+function setMode(m){state.mode=m;
+  document.getElementById('modeDim').classList.toggle('on',m==='dim');
+  document.getElementById('modeScale').classList.toggle('on',m==='scale');
+  document.getElementById('panelDim').style.display=m==='dim'?'':'none';
+  document.getElementById('panelScale').style.display=m==='scale'?'':'none';
+  if(m==='dim'){ // 从量表回到滑杆时同步
+    buildSliders();
+  }
+}
+document.querySelectorAll('[data-ex]').forEach(b=>b.addEventListener('click',()=>{
+  state.scores=Object.assign({},EXAMPLES[b.dataset.ex]);
+  if(state.mode==='scale'){setMode('dim');}
+  buildSliders();runSingle();toast('已载入示例：'+b.textContent);
+}));
+document.getElementById('resetDim').addEventListener('click',()=>{
+  state.scores={抽象:3,分解:3,算法设计:3,建模:3,评估:3};buildSliders();runSingle();});
 
-async function diagnose(){
-  const btn=document.getElementById('runDiag');btn.disabled=true;btn.textContent='诊断中…';
+let singleTimer=null,singleSeq=0;
+function scheduleSingle(){clearTimeout(singleTimer);singleTimer=setTimeout(runSingle,320);}
+function setApiStatus(kind,msg){const el=document.getElementById('apiStatus');if(!el)return;
+  el.className='file-status '+(kind==='err'?'err':'');el.textContent=msg;}
+async function runSingle(){
+  const id=(document.getElementById('stuId').value||'').trim()||'未命名';
+  const scores={};ORDER.forEach(k=>scores[k]=clampNum(state.scores[k],1,5));
+  const seq=++singleSeq;
+  const btn=document.getElementById('runDiag');if(btn){btn.disabled=true;btn.textContent='诊断中…';}
+  setApiStatus('loading','正在请求本地后端…');
   try{
-    const res=await fetch('/api/diagnose',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({student_id:document.getElementById('sid').value,scores})});
-    const d=await res.json();
-    renderResult(d);
-  }catch(e){toast('诊断失败：后端未启动');}
-  finally{btn.disabled=false;btn.textContent='开始诊断';}
+    const d=await apiDiagnose(id,scores);
+    if(seq!==singleSeq)return; // 丢弃过期响应
+    const res=normalize(d);state.current={id,res};
+    document.getElementById('predScore').textContent=res.base.toFixed(1);
+    document.getElementById('predGrade').textContent=`${gradeOf(res.base)} · 反事实优先「${res.cfBest.dim}」预计 +${res.cfBest.gain.toFixed(1)} 分`;
+    document.getElementById('thrLine').textContent=`自适应阈值（后端返回）|SHAP| ${res.shapThr.toFixed(2)} · 因果 ${res.ceThr.toFixed(1)}`;
+    drawRadar(res);drawScatter(res);renderDimCards(res);renderCF(res);renderReport(id,res);
+    setApiStatus('ok','已连接本地后端 · 结果为实时计算');
+  }catch(err){
+    if(seq!==singleSeq)return;
+    setApiStatus('err','后端未连接：请在项目目录运行 python -m uvicorn backend:app --host 127.0.0.1 --port 8000，再经 http://localhost:8000 打开');
+    document.getElementById('predGrade').textContent='暂无结果：等待本地后端连接';
+  }finally{if(btn){btn.disabled=false;btn.textContent='开始诊断';}}
 }
-document.getElementById('runDiag').addEventListener('click',diagnose);
+document.getElementById('runDiag').addEventListener('click',runSingle);
 
-function renderResult(d){
-  const box=document.getElementById('result');
-  const bestDim=d.cf_best_dim;
-  box.innerHTML=`
-    <div class="score-hero">
-      <div><div class="lab">预测作业质量</div><div class="big">${d.base_pred}<small> / 100</small></div></div>
-      <div class="best">反事实结论：优先提升「${esc(bestDim)}」预计 +${d.cf_best_gain} 分</div>
-    </div>
-    <div class="results-grid">
-      <div class="card">
-        <div class="card-h"><h3>五维得分</h3></div>
-        <div class="card-b"><div class="chart" id="radar"></div></div>
-      </div>
-      <div class="card">
-        <div class="card-h"><h3>四分类诊断</h3><span class="tag">LAYER 2</span></div>
-        <div class="card-b" id="layer2List"></div>
-      </div>
-    </div>
-    <div class="card" style="margin-top:16px">
-      <div class="card-h"><h3>四象限诊断散点</h3><span class="tag">LAYER 2</span></div>
-      <div class="card-b"><div id="scatter"></div></div>
-    </div>
-    <div class="card" style="margin-top:16px">
-      <div class="card-h"><h3>反事实分析</h3><span class="tag">LAYER 1</span></div>
-      <div class="card-b" id="layer1Table"></div>
-    </div>
-  `;
-  // Layer 2 列表
-  const l2=d.layer2.map(r=>`
-    <div class="dim-row">
-      <div><div class="nm">${esc(r.维度)}　${pill(r.分类)}</div>
-        <div class="meta">SHAP ${(+r.SHAP).toFixed(2)} · 个体化效应 +${(+r.因果效应).toFixed(1)}分</div>
-        <div class="meta">${esc(r.建议)}</div></div>
-    </div>`).join('');
-  document.getElementById('layer2List').innerHTML=l2;
-  // 雷达图
-  radarChart=echarts.init(document.getElementById('radar'));
-  radarChart.setOption({radar:{indicator:ORDER.map(k=>({name:d.dim_names[k],max:5})),radius:'62%'},
-    series:[{type:'radar',data:[{value:ORDER.map(k=>d.scores[k]),areaStyle:{opacity:.2},name:d.student_id}],symbolSize:5}]});
-  // 散点图
-  scatterChart=echarts.init(document.getElementById('scatter'));
-  const cmap={'优先干预':'#2F9E6E','仅观察':'#D08A12','潜在有效':'#2F7FB8','无需关注':'#98A5B0'};
-  const pts=d.layer2.map(r=>({value:[Math.abs(+r.SHAP), +r.因果效应], name:r.维度, cat:r.分类}));
-  scatterChart.setOption({tooltip:{formatter:p=>`${p.data.name}<br>|SHAP| ${p.value[0].toFixed(2)}<br>效应 ${p.value[1].toFixed(1)}`},
-    xAxis:{name:'|SHAP| 重要性',type:'value',splitLine:{show:false}},
-    yAxis:{name:'个体化因果效应（分）',type:'value'},
-    series:[{type:'scatter',data:pts,symbolSize:26,
-      itemStyle:{color:p=>cmap[p.data.cat]},
-      markLine:{silent:true,symbol:'none',data:[{xAxis:d.shap_threshold},{yAxis:d.ce_threshold}],lineStyle:{color:'#aaa',type:'dashed'}}}],
-    grid:{left:60,right:30,top:20,bottom:50}});
-  // Layer 1 反事实表
-  let l1=`<table><tr><th>维度</th><th>当前</th><th>提至满分预测</th><th>变化</th></tr>`;
-  d.layer1.forEach(x=>{
-    const full=x.series.find(s=>s[`${x.dim}假设值`]===5);
-    l1+=`<tr><td>${esc(x.dim)}</td><td>${x.current}</td><td>${full?full.预测成绩:'—'}</td><td>${full?(full.相比当前变化>0?'+':''):''}${full?full.相比当前变化:'—'}</td></tr>`;
+function chartsReady(){return typeof echarts!=='undefined';}
+function drawRadar(res){
+  const el=document.getElementById('radar');
+  if(!chartsReady()){el.innerHTML='<div class="empty">图表库未加载成功，请检查网络后刷新；其余诊断功能不受影响。</div>';return;}
+  if(!radarChart) radarChart=echarts.init(el);
+  radarChart.setOption({
+    title:{text:'五维度能力画像',left:'center',top:6,textStyle:{fontSize:13,fontFamily:'Noto Serif SC',color:'#21303A'}},
+    tooltip:{confine:true},
+    radar:{indicator:res.order.map(k=>({name:k,min:0,max:5})),radius:'62%',center:['50%','56%'],
+      axisName:{color:'#465863',fontSize:12,fontWeight:600},
+      splitLine:{lineStyle:{color:'#E4DECF'}},splitArea:{areaStyle:{color:['#FBF8F1','#F6F3EC']}},
+      axisLine:{lineStyle:{color:'#D6CEBB'}}},
+    series:[{type:'radar',data:[{value:res.order.map(k=>res.scores[k]),name:'当前得分',
+      areaStyle:{color:'#0E6B63',opacity:.18},lineStyle:{color:'#0E6B63',width:2},
+      symbol:'circle',itemStyle:{color:'#0E6B63'},label:{show:true,color:'#0A4D47',fontWeight:700,fontSize:11}}]}]
   });
-  l1+='</table><div class="disc" style="margin-top:10px">免责声明：以上为模型假设模拟（CFE），仅展示「若该维度独立变化，模型预测如何改变」，非真实因果；实际干预优先级请以 Layer 2 个体化因果效应为准。</div>';
-  document.getElementById('layer1Table').innerHTML=l1;
-  window.__charts=[radarChart,scatterChart];
 }
 
-/* ============ 批量诊断 ============ */
-document.getElementById('runBatch').addEventListener('click',async()=>{
-  const text=document.getElementById('batchInput').value.trim();
-  if(!text){toast('请先粘贴数据');return;}
-  const lines=text.split('\n').filter(l=>l.trim());
-  const students=lines.slice(1).map(l=>{
-    const p=l.split(',').map(s=>s.trim());
-    return {student_id:p[0],scores:{抽象:+p[1],分解:+p[2],算法设计:+p[3],建模:+p[4],评估:+p[5]}};
+function drawScatter(res){
+  const el=document.getElementById('scatter');
+  if(!chartsReady()){el.innerHTML='<div class="empty">图表库未加载成功，请检查网络后刷新；其余诊断功能不受影响。</div>';return;}
+  if(!scatterChart) scatterChart=echarts.init(el);
+  const groups={priority:[],observe:[],potential:[],none:[]};
+  res.rows.forEach(r=>groups[r.cat.key].push({value:[+r.absShap.toFixed(3),+r.ceInd.toFixed(2)],name:r.dim,dim:r.dim,score:r.score}));
+  const mk=(key,name,withMark)=>{const s={name,type:'scatter',
+    symbolSize:key==='priority'?30:(key==='observe'?25:21),
+    itemStyle:{color:CAT[key].color,opacity:.88,borderColor:'#ffffff',borderWidth:2},
+    label:{show:true,formatter:p=>p.data.dim,position:'right',fontSize:12,color:'#21303A',fontWeight:600},
+    data:groups[key],emphasis:{focus:'self'}};
+    if(withMark){s.markLine={silent:true,symbol:'none',
+      lineStyle:{color:'#8A97A2',type:'dashed',width:1.2},label:{color:'#6B7884',fontSize:11},
+      data:[{xAxis:+res.shapThr.toFixed(2),label:{formatter:'|SHAP| 阈值'}},{yAxis:+res.ceThr.toFixed(1),label:{formatter:'因果阈值'}}]};}
+    return s;};
+  scatterChart.setOption({
+    tooltip:{confine:true,formatter:p=>`${p.data.dim}（${FULL[p.data.dim]}）<br/>得分 ${p.data.score.toFixed(1)} / 5<br/>|SHAP| ${p.value[0]}<br/>个体化效应 +${p.value[1]} 分`},
+    legend:{top:0,left:'center',itemWidth:12,itemHeight:12,itemGap:18,textStyle:{fontSize:12,color:'#465863'}},
+    grid:{left:64,right:30,top:42,bottom:46},
+    xAxis:{name:'|SHAP| 模型归因重要性',nameLocation:'middle',nameGap:28,type:'value',min:0,
+      splitLine:{lineStyle:{color:'#EFE9DC'}},axisLine:{lineStyle:{color:'#C9C0AC'}},nameTextStyle:{color:'#465863',fontSize:12}},
+    yAxis:{name:'个体化因果效应（分）',nameLocation:'middle',nameGap:46,type:'value',min:0,
+      splitLine:{lineStyle:{color:'#EFE9DC'}},axisLine:{lineStyle:{color:'#C9C0AC'}},nameTextStyle:{color:'#465863',fontSize:12}},
+    series:[mk('priority','优先干预',true),mk('observe','仅观察'),mk('potential','潜在有效'),mk('none','无需关注')]
   });
-  const btn=document.getElementById('runBatch');btn.disabled=true;btn.textContent='诊断中…';
+}
+
+function renderDimCards(res){
+  const wrap=document.getElementById('dimCards');wrap.innerHTML='';
+  res.rows.forEach(r=>{
+    const c=document.createElement('div');c.className='dim-card '+r.cat.cls;
+    c.innerHTML=`<div class="dh"><span class="t">${r.dim} · ${res.dimNames[r.dim]||FULL[r.dim]}</span>
+        <span class="pill ${r.cat.pill}"><span class="dot"></span>${r.cat.label}</span></div>
+      <div class="metric-line">
+        <span>得分 <b class="num">${r.score.toFixed(1)}/5</b></span>
+        <span>SHAP <b class="num">${r.shap>=0?'+':''}${r.shap.toFixed(2)}</b></span>
+        <span>提升空间 <b class="num">${r.head.toFixed(1)}</b></span>
+        <span>个体化效应 <b class="num">+${r.ceInd.toFixed(1)} 分</b></span>
+      </div><div class="advice">${r.advice}</div>`;
+    wrap.appendChild(c);
+  });
+}
+
+function renderCF(res){
+  const t=document.getElementById('cfTable');
+  let head='<tr><th>维度</th><th class="num">当前</th>';
+  [1,2,3,4,5].forEach(v=>head+=`<th class="num">假设=${v}</th>`);head+='<th class="num">提至 5 增益</th></tr>';
+  let body='';
+  res.cf.forEach(c=>{
+    const gain5=c.series[c.series.length-1].delta;
+    body+=`<tr><td><b>${c.dim}</b> <span class="muted">${res.dimNames[c.dim]||FULL[c.dim]}</span></td><td class="num">${c.current.toFixed(1)}</td>`;
+    c.series.forEach(s=>{body+=`<td class="num ${Math.abs(s.v-c.current)<0.01?'cur':''}">${s.pred.toFixed(1)}<div class="muted">${s.delta>=0?'+':''}${s.delta.toFixed(1)}</div></td>`;});
+    body+=`<td class="num" style="font-weight:700;color:#0A4D47">${gain5>=0?'+':''}${gain5.toFixed(1)}</td></tr>`;
+  });
+  t.innerHTML=head+body;
+}
+
+function buildReportMd(id,res){
+  const L=[];
+  L.push(`# 学生 ${id} 计算思维诊断报告`,'');
+  L.push(`**模型预测作业质量：${res.base.toFixed(1)} 分**（${gradeOf(res.base)}）`,'');
+  L.push(`自适应阈值（后端返回）：|SHAP| ${res.shapThr.toFixed(2)}、个体化因果效应 ${res.ceThr.toFixed(1)} 分`,'','---','');
+  const groups=[['priority','一、优先干预维度'],['observe','二、需关注但暂不干预（仅观察）'],
+    ['potential','三、备选干预维度（潜在有效）'],['none','四、当前正常 / 无需关注']];
+  groups.forEach(([key,title])=>{
+    const items=res.rows.filter(r=>r.cat.key===key);
+    if(!items.length)return;
+    L.push(`## ${title}`,'');
+    items.forEach(r=>{
+      L.push(`### ${r.dim} · ${res.dimNames[r.dim]||FULL[r.dim]}　【${r.cat.label}】`);
+      L.push(`- 当前得分：${r.score.toFixed(1)}/5；SHAP：${r.shap>=0?'+':''}${r.shap.toFixed(2)}；提升空间：${r.head.toFixed(1)}；个体化因果效应：+${r.ceInd.toFixed(1)} 分`);
+      L.push(`- 建议：${r.advice}`,'');
+    });
+  });
+  L.push('---','','## 附：反事实分析参考（模型模拟，仅供参考）');
+  L.push(`- 若将「${res.cfBest.dim} · ${res.dimNames[res.cfBest.dim]||FULL[res.cfBest.dim]}」提升至满分 5，模型预测变化 +${res.cfBest.gain.toFixed(1)} 分。`);
+  L.push('- 注意：以上为模型假设模拟，真实干预优先级请以 Layer 2 个体化因果效应为准。','');
+  L.push('*本报告基于可解释 AI 分析，SHAP 反映模型归因，个体化因果效应反映干预预期收益；仅供教学参考，不构成教育决策的唯一依据。*');
+  return L.join('\n');
+}
+function mdToHtml(md){
+  // 轻量 markdown 渲染（标题/列表/粗体/分割线）
+  const lines=md.split('\n');let h='',inUl=false;
+  const inline=s=>s.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\*(.+?)\*/g,'<i>$1</i>');
+  lines.forEach(ln=>{
+    if(ln.startsWith('### ')){if(inUl){h+='</ul>';inUl=false;}h+=`<h4>${inline(ln.slice(4))}</h4>`;}
+    else if(ln.startsWith('## ')){if(inUl){h+='</ul>';inUl=false;}h+=`<h4>${inline(ln.slice(3))}</h4>`;}
+    else if(ln.startsWith('# ')){if(inUl){h+='</ul>';inUl=false;}h+=`<h4>${inline(ln.slice(2))}</h4>`;}
+    else if(ln.startsWith('- ')){if(!inUl){h+='<ul>';inUl=true;}h+=`<li>${inline(ln.slice(2))}</li>`;}
+    else if(ln==='---'){if(inUl){h+='</ul>';inUl=false;}h+='<hr style="border:0;border-top:1px solid var(--line);margin:10px 0">';}
+    else if(ln.trim()===''){if(inUl){h+='</ul>';inUl=false;}}
+    else{if(inUl){h+='</ul>';inUl=false;}h+=`<p>${inline(ln)}</p>`;}
+  });
+  if(inUl)h+='</ul>';return h;
+}
+function renderReport(id,res){document.getElementById('reportOut').innerHTML=mdToHtml(buildReportMd(id,res));}
+
+document.getElementById('copyReport').addEventListener('click',()=>{
+  if(!state.current)return;const md=buildReportMd(state.current.id,state.current.res);
+  navigator.clipboard.writeText(md).then(()=>toast('报告已复制到剪贴板')).catch(()=>toast('复制失败，请手动选择'));
+});
+document.getElementById('dlReport').addEventListener('click',()=>{
+  if(!state.current)return;download(`诊断报告_${state.current.id}.md`,buildReportMd(state.current.id,state.current.res),'text/markdown;charset=utf-8');toast('已下载 Markdown 报告');
+});
+document.getElementById('printReport').addEventListener('click',()=>{
+  if(!state.current)return;
+  const mount=document.getElementById('printMount');
+  mount.innerHTML=`<div class="print-area"><div class="sheet-preview">${mdToHtml(buildReportMd(state.current.id,state.current.res))}</div></div>`;
+  window.print();setTimeout(()=>mount.innerHTML='',500);
+});
+
+/* ============================================================
+   六、批量视图
+   ============================================================ */
+function parseCsvText(txt){
+  return txt.replace(/^﻿/,'').split(/\r?\n/).filter(l=>l.trim()!=='').map(l=>l.split(/[,\t，]/).map(c=>c.trim()));
+}
+// 二维网格 → 学生记录；若表头含维度名则按列名映射（顺序任意、可含其他列），否则按固定位置
+function parseGrid(grid){
+  const clean=grid.map(r=>(r||[]).map(c=>(c==null?'':String(c).trim()))).filter(r=>r.some(c=>c!==''));
+  if(!clean.length)return [];
+  const norm=s=>(s||'').replace(/\s/g,'');
+  const header=clean[0].map(norm);
+  const colOf={};
+  ORDER.forEach(k=>{const i=header.findIndex(h=>h===k||h.includes(k));if(i>=0)colOf[k]=i;});
+  const hasHeader=ORDER.filter(k=>colOf[k]!=null).length>=3;
+  let idCol=0;
+  if(hasHeader){const ii=header.findIndex(h=>/编号|学号|姓名|名字|^id$/i.test(h));if(ii>=0)idCol=ii;}
+  const rows=[];
+  clean.forEach((cells,idx)=>{
+    if(hasHeader&&idx===0)return;
+    let sc;
+    if(hasHeader){sc={};ORDER.forEach(k=>sc[k]=parseFloat((cells[colOf[k]]||'').replace('%','')));}
+    else{if(cells.length<6)return;sc={抽象:+cells[1],分解:+cells[2],算法设计:+cells[3],建模:+cells[4],评估:+cells[5]};}
+    if(ORDER.every(k=>!isNaN(sc[k]))){
+      let id=hasHeader?(cells[idCol]||'').trim():String(cells[0]||'').trim();
+      if(!id)id='学生'+(idx+1);
+      rows.push({id,sc});
+    }
+  });
+  return rows;
+}
+function parseRows(text){return parseGrid(parseCsvText(text));}
+
+/* ---------- 零依赖读取 .xlsx / .csv（ZIP 目录解析 + 原生 inflate + DOMParser） ---------- */
+function colLetterToIndex(letters){let n=0;for(const ch of letters)n=n*26+(ch.charCodeAt(0)-64);return n-1;}
+// XML 实体解码兜底（浏览器 DOMParser 通常已解码；此函数对已解码中文无副作用，可安全再调用）
+function decodeXmlEntities(s){return String(s==null?'':s)
+  .replace(/&#x([0-9a-fA-F]+);/g,(_,h)=>String.fromCodePoint(parseInt(h,16)))
+  .replace(/&#(\d+);/g,(_,d)=>String.fromCodePoint(parseInt(d,10)))
+  .replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');}
+async function inflateRaw(uint8){
+  if(typeof DecompressionStream==='undefined')throw new Error('当前浏览器不支持原生解压，请改用 CSV，或升级到最新版 Chrome / Edge');
+  const ds=new DecompressionStream('deflate-raw');
+  const stream=new Blob([uint8]).stream().pipeThrough(ds);
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+async function parseXlsx(buf){
+  const bytes=new Uint8Array(buf),view=new DataView(buf);
+  let eocd=-1;
+  for(let i=bytes.length-22;i>=Math.max(0,bytes.length-65557);i--){
+    if(bytes[i]===0x50&&bytes[i+1]===0x4b&&bytes[i+2]===0x05&&bytes[i+3]===0x06){eocd=i;break;}
+  }
+  if(eocd<0)throw new Error('不是有效的 .xlsx 文件（找不到 ZIP 中央目录）');
+  const total=view.getUint16(eocd+10,true);
+  let p=view.getUint32(eocd+16,true);
+  const files={};
+  for(let n=0;n<total;n++){
+    if(!(bytes[p]===0x50&&bytes[p+1]===0x4b&&bytes[p+2]===0x01&&bytes[p+3]===0x02))break;
+    const method=view.getUint16(p+10,true),csize=view.getUint32(p+20,true);
+    const nLen=view.getUint16(p+28,true),eLen=view.getUint16(p+30,true),cLen=view.getUint16(p+32,true);
+    const name=new TextDecoder().decode(bytes.subarray(p+46,p+46+nLen));
+    const localOff=view.getUint32(p+42,true);
+    const lnLen=view.getUint16(localOff+26,true),leLen=view.getUint16(localOff+28,true);
+    const dataStart=localOff+30+lnLen+leLen;
+    let data=bytes.subarray(dataStart,dataStart+csize);
+    if(method===8)data=await inflateRaw(data);
+    files[name]=data;
+    p+=46+nLen+eLen+cLen;
+  }
+  const dec=new TextDecoder('utf-8');
+  let shared=[];
+  if(files['xl/sharedStrings.xml']){
+    const sx=new DOMParser().parseFromString(dec.decode(files['xl/sharedStrings.xml']),'text/xml');
+    [...sx.getElementsByTagName('si')].forEach(si=>{shared.push(decodeXmlEntities([...si.getElementsByTagName('t')].map(t=>t.textContent).join('')));});
+  }
+  // 由 workbook.xml + rels 确定第一个工作表路径，缺省回退 sheet1.xml
+  let sheetPath='xl/worksheets/sheet1.xml';
+  if(files['xl/workbook.xml']){
+    const wb=new DOMParser().parseFromString(dec.decode(files['xl/workbook.xml']),'text/xml');
+    const first=wb.getElementsByTagName('sheet')[0];
+    let rid=first&&(first.getAttribute('r:id')||first.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id'));
+    if(rid&&files['xl/_rels/workbook.xml.rels']){
+      const rx=new DOMParser().parseFromString(dec.decode(files['xl/_rels/workbook.xml.rels']),'text/xml');
+      [...rx.getElementsByTagName('Relationship')].forEach(r=>{if(r.getAttribute('Id')===rid){
+        let tgt=r.getAttribute('Target').replace(/^\/+/,'');
+        sheetPath=/^xl\//.test(tgt)?tgt:'xl/'+tgt;
+      }});
+    }
+  }
+  if(!files[sheetPath]){const k=Object.keys(files).find(x=>/xl\/worksheets\/sheet\d+\.xml$/.test(x));if(k)sheetPath=k;}
+  if(!files[sheetPath])throw new Error('未在工作簿中找到工作表数据');
+  const wx=new DOMParser().parseFromString(dec.decode(files[sheetPath]),'text/xml');
+  const grid=[];
+  [...wx.getElementsByTagName('row')].forEach(row=>{
+    const arr=[];
+    [...row.getElementsByTagName('c')].forEach(c=>{
+      const ref=c.getAttribute('r')||'',m=ref.match(/[A-Z]+/);
+      const ci=m?colLetterToIndex(m[0]):arr.length;
+      const t=c.getAttribute('t'),v=c.getElementsByTagName('v')[0];
+      let val='';
+      if(t==='s'){val=shared[parseInt(v?v.textContent:'0')]||'';}
+      else if(t==='inlineStr'){const tt=c.getElementsByTagName('t')[0];val=tt?decodeXmlEntities(tt.textContent):'';}
+      else{val=v?v.textContent:'';}
+      arr[ci]=(val==null?'':String(val).trim());
+    });
+    grid.push(arr.map(x=>x==null?'':x));
+  });
+  return grid;
+}
+async function readSpreadsheetFile(file){
+  const buf=await file.arrayBuffer(),nm=file.name.toLowerCase();
+  if(nm.endsWith('.csv'))return parseCsvText(new TextDecoder('utf-8').decode(buf));
+  if(nm.endsWith('.xlsx'))return await parseXlsx(buf);
+  throw new Error('仅支持 .xlsx 或 .csv，旧版 .xls 请先在 Excel 中另存为 .xlsx');
+}
+function bindUpload(){
+  const zone=document.getElementById('uploadZone'),input=document.getElementById('fileInput'),status=document.getElementById('fileStatus');
+  if(!zone)return;
+  const open=()=>input.click();
+  zone.addEventListener('click',open);
+  zone.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});
+  ['dragover','dragenter'].forEach(ev=>zone.addEventListener(ev,e=>{e.preventDefault();zone.classList.add('drag');}));
+  ['dragleave','dragend'].forEach(ev=>zone.addEventListener(ev,e=>{e.preventDefault();zone.classList.remove('drag');}));
+  zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0]);});
+  input.addEventListener('change',()=>{if(input.files[0])handleFile(input.files[0]);});
+  async function handleFile(f){
+    status.className='file-status';status.textContent='正在解析「'+f.name+'」…';
+    try{
+      const grid=await readSpreadsheetFile(f);
+      const rows=parseGrid(grid);
+      if(!rows.length)throw new Error('解析到 0 条有效记录，请确认表头含五个维度列、且数据为 1–5 的数字');
+      const tsv=[['学生编号',...ORDER].join('\t')].concat(rows.map(r=>[r.id,...ORDER.map(k=>r.sc[k])].join('\t'))).join('\n');
+      document.getElementById('batchInput').value=tsv;
+      status.textContent='已从「'+f.name+'」解析出 '+rows.length+' 名学生并填入下方，可核对后重新诊断';
+      runBatch();
+    }catch(err){status.className='file-status err';status.textContent='解析失败：'+err.message;}
+    finally{input.value='';}
+  }
+}
+document.getElementById('batchExample').addEventListener('click',()=>{
+  const data=[['学生编号,抽象,分解,算法设计,建模,评估'],
+    ['S001,2,2,3,2,3'],['S002,4,4,3,4,4'],['S003,2,4,2,4,4'],['S004,5,4.5,5,4.5,4'],
+    ['S005,3,2,2,3,2'],['S006,4,3,3,2,3'],['S007,2,3,3,3,4'],['S008,3.5,3.5,4,3,3']];
+  document.getElementById('batchInput').value=data.join('\n');toast('已填入 8 人示例');
+});
+document.getElementById('clearBatch').addEventListener('click',()=>{document.getElementById('batchInput').value='';});
+document.getElementById('runBatch').addEventListener('click',runBatch);
+async function runBatch(){
+  const text=document.getElementById('batchInput').value;
+  const rows=parseRows(text);
+  if(!rows.length){toast('未解析到有效数据，请检查格式');return;}
+  const btn=document.getElementById('runBatch');btn.disabled=true;btn.textContent='批量诊断中…';
   try{
-    const res=await fetch('/api/batch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({students})});
-    const data=await res.json();
-    renderBatch(data.results,students);
-    document.getElementById('exportBatch').disabled=false;
-  }catch(e){toast('批量诊断失败');}
-  finally{btn.disabled=false;btn.textContent='开始批量诊断';}
+    const students=rows.map(r=>({student_id:r.id,scores:r.sc}));
+    const data=await apiBatch(students); // 一次请求完成全部诊断
+    state.batch=data.results.map(d=>{const res=normalize(d);
+      const pri=res.rows.filter(x=>x.pri===0).map(x=>x.dim); // 优先级0=优先干预（不匹配emoji文本）
+      return {id:res.id,res,pri,top:pri[0]||'综合'};});
+    renderBatch();
+  }catch(err){
+    toast('批量诊断失败：未连接本地后端，请先启动 uvicorn 后端');
+  }finally{btn.disabled=false;btn.textContent='开始批量诊断';}
+}
+function badge(cat){return `<span class="tbl-badge" style="color:${cat.color};background:${cat.color}1A">${cat.label}</span>`;}
+function renderBatch(){
+  document.getElementById('batchEmpty').style.display='none';
+  document.getElementById('batchResult').style.display='';
+  const b=state.batch;
+  // 统计
+  const cnt={priority:0};const grp={};
+  b.forEach(r=>{if(r.pri.length)cnt.priority++;grp[r.top]=(grp[r.top]||0)+1;});
+  const gs=document.getElementById('groupStats');
+  const cards=[['总人数',b.length,'#0E6B63'],['含优先干预维度',cnt.priority,'#2F9E6E']];
+  ORDER.forEach(k=>cards.push([k+'组',grp[k]||0,CAT.priority.color]));
+  cards.push(['综合组',grp['综合']||0,'#98A5B0']);
+  gs.innerHTML=cards.map(c=>`<div class="stat"><div class="n num" style="color:${c[2]}">${c[1]}</div><div class="l">${c[0]}</div></div>`).join('');
+  // 表
+  let h='<tr><th>编号</th>';ORDER.forEach(k=>h+=`<th class="num">${k}</th>`);
+  h+='<th class="num">预测分</th><th>优先干预维度</th><th>最优先分组</th><th>操作</th></tr>';
+  let body='';
+  b.forEach((r,i)=>{
+    body+=`<tr><td><b>${r.id}</b></td>`;
+    ORDER.forEach(k=>body+=`<td class="num">${r.res.scores[k].toFixed(1)}</td>`);
+    body+=`<td class="num" style="font-weight:700">${r.res.base.toFixed(1)}</td>`;
+    body+=`<td>${r.pri.length?r.pri.map(d=>`<span class="tbl-badge" style="color:#2F9E6E;background:#E7F4EC">${d}</span>`).join(' '):'<span class="muted">无</span>'}</td>`;
+    body+=`<td>${r.top}</td><td><button class="linkbtn" data-i="${i}">查看单人</button></td></tr>`;
+  });
+  const tbl=document.getElementById('batchTable');tbl.innerHTML=h+body;
+  tbl.querySelectorAll('.linkbtn').forEach(bt=>bt.addEventListener('click',()=>{
+    const r=state.batch[+bt.dataset.i];state.scores=Object.assign({},r.res.scores);
+    document.getElementById('stuId').value=r.id;setMode('dim');buildSliders();runSingle();go('single');
+    window.scrollTo(0,0);
+  }));
+  // 分组列表
+  const gl=document.getElementById('groupList');gl.innerHTML='';
+  Object.keys(grp).forEach(k=>{
+    const ids=b.filter(r=>r.top===k).map(r=>r.id);
+    const d=document.createElement('div');d.style.cssText='display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);align-items:baseline';
+    d.innerHTML=`<span class="pill ${k==='综合'?'p-none':'p-priority'}" style="min-width:96px;justify-content:center"><span class="dot"></span>${k} 组 · ${ids.length}人</span>
+      <span style="font-size:13px;color:var(--ink-2)">${ids.join('、')}</span>
+      <button class="btn sm" style="margin-left:auto" data-g="${k}">为该组出题</button>`;
+    gl.appendChild(d);
+  });
+  gl.querySelectorAll('[data-g]').forEach(bt=>bt.addEventListener('click',()=>{
+    const k=bt.dataset.g;state.sheetSel=new Set(k==='综合'?ORDER:[k]);initSheetChecks();go('sheet');toast(k==='综合'?'综合组：五维混合抽题':`已选中 ${k} 维度，可直接生成题单`);
+  }));
+}
+document.getElementById('dlBatchCsv').addEventListener('click',()=>{
+  if(!state.batch.length)return;
+  const head=['学生编号',...ORDER,'预测作业质量','优先干预维度','最优先分组'];
+  const lines=[head.join(',')];
+  state.batch.forEach(r=>{lines.push([r.id,...ORDER.map(k=>r.res.scores[k].toFixed(2)),r.res.base.toFixed(1),r.pri.join('|'),r.top].join(','));});
+  download('批量诊断汇总.csv','\ufeff'+lines.join('\n'),'text/csv;charset=utf-8');toast('已导出 CSV');
 });
 
-let lastBatch=[];
-function renderBatch(results){
-  lastBatch=results;
-  const box=document.getElementById('batchResult');
-  // 汇总表
-  let t=`<table><tr><th>学生</th><th>预测分</th>${ORDER.map(k=>`<th>${k}</th>`).join('')}<th>优先干预维度</th></tr>`;
-  results.forEach(r=>{
-    const pri=r.layer2.filter(x=>x.分类==='优先干预').map(x=>x.维度).join('、')||'无';
-    t+=`<tr><td>${esc(r.student_id)}</td><td>${r.base_pred}</td>${ORDER.map(k=>`<td>${r.scores[k]}</td>`).join('')}<td>${esc(pri)}</td></tr>`;
+/* ============================================================
+   七、干预题单视图
+   ============================================================ */
+function initSheetChecks(){
+  const wrap=document.getElementById('dimChecks');wrap.innerHTML='';
+  ORDER.forEach(k=>{
+    const c=document.createElement('span');c.className='chk'+(state.sheetSel.has(k)?' on':'');c.textContent=k;
+    c.addEventListener('click',()=>{state.sheetSel.has(k)?state.sheetSel.delete(k):state.sheetSel.add(k);c.classList.toggle('on');});
+    wrap.appendChild(c);
   });
-  t+='</table>';
-  // 分组
-  const groups={};
-  results.forEach(r=>{
-    const pri=r.layer2.find(x=>x.分类==='优先干预');
-    const key=pri?pri.维度:'综合';
-    (groups[key]=groups[key]||[]).push(r.student_id);
-  });
-  let g='<h3 style="margin:16px 0 8px;font-family:var(--serif)">干预分组</h3><table><tr><th>维度</th><th>人数</th><th>学生</th></tr>';
-  Object.entries(groups).forEach(([dim,ids])=>{g+=`<tr><td>${esc(dim)}</td><td>${ids.length}</td><td>${esc(ids.join('、'))}</td></tr>`;});
-  g+='</table>';
-  box.innerHTML=t+g;
 }
-document.getElementById('exportBatch').addEventListener('click',()=>{
-  if(!lastBatch.length)return;
-  let csv='学生ID,预测分,'+ORDER.join(',')+'优先干预维度\n';
-  lastBatch.forEach(r=>{const pri=r.layer2.filter(x=>x.分类==='优先干预').map(x=>x.维度).join('、')||'无';csv+=`${r.student_id},${r.base_pred},${ORDER.map(k=>r.scores[k]).join(',')},${pri}\n`;});
-  const blob=new Blob(['﻿'+csv],{type:'text/csv'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='批量诊断汇总.csv';a.click();
+(function initWeek(){const w=document.getElementById('sheetWeek');for(let i=1;i<=12;i++){const o=document.createElement('option');o.value=i;o.textContent='第 '+i+' 周';if(i===1)o.selected=true;w.appendChild(o);}})();
+document.getElementById('genSheet').addEventListener('click',genSheet);
+function pickQuestions(dim,count,maxDiff){
+  let pool=BANK[dim].filter(q=>q.difficulty<=maxDiff);
+  if(!pool.length)pool=BANK[dim];
+  const out=[];for(let i=0;i<count;i++)out.push(pool[i%pool.length]);return out;
+}
+function genSheet(){
+  const dims=ORDER.filter(k=>state.sheetSel.has(k));
+  if(!dims.length){toast('请至少选择一个训练维度');return;}
+  const count=parseInt(document.getElementById('sheetCount').value);
+  const week=document.getElementById('sheetWeek').value;
+  const maxDiff=parseInt(document.getElementById('sheetDiff').value);
+  document.getElementById('sheetEmpty').style.display='none';
+  const area=document.getElementById('sheetArea');area.style.display='block';
+  let html='<div class="sheet-preview">';
+  html+=`<h3>计算思维个性化训练题单（第 ${week} 周）</h3>`;
+  html+=`<div class="meta">训练维度：${dims.map(k=>`${k}·${FULL[k]}`).join('、')}　|　每维 ${count} 题　|　作答要求：请独立思考，用文字或图形写出思路。</div>`;
+  let qi=1;const key=[];
+  dims.forEach(dim=>{
+    html+=`<div style="font-family:var(--serif);font-weight:700;color:var(--teal-d);margin:14px 0 8px;font-size:15px">${FULL[dim]}（${dim}）</div>`;
+    pickQuestions(dim,count,maxDiff).forEach(q=>{
+      html+=`<div class="q-item"><div class="qh">第 ${qi++} 题　【${q.type}】　难度 ${'★'.repeat(q.difficulty)}</div>
+        <div class="qstem">${q.stem}</div><div class="ansline"></div><div class="ansline"></div><div class="ansline"></div></div>`;
+      key.push({dim,q});
+    });
+  });
+  html+='<div class="answer-key"><h4>参考答案（教师用）</h4>';
+  let ai=1;
+  key.forEach(({dim,q})=>{html+=`<p><b>第 ${ai++} 题（${dim}·${q.type}）：</b>${q.answer}　<span style="color:#8A97A2">提示：${q.hint}</span></p>`;});
+  html+='</div></div>';
+  area.innerHTML=html;state.lastSheet=html;toast('题单已生成，可打印');
+}
+document.getElementById('printSheet').addEventListener('click',()=>{
+  if(!state.lastSheet){toast('请先生成题单');return;}
+  document.getElementById('printMount').innerHTML='<div class="print-area">'+state.lastSheet+'</div>';
+  window.print();
+  setTimeout(()=>{document.getElementById('printMount').innerHTML='';},500);
 });
+
+/* ============================================================
+   八、初始化
+   ============================================================ */
+buildSliders();buildScale();initSheetChecks();bindUpload();runSingle();
 </script>
 </body>
 </html>
