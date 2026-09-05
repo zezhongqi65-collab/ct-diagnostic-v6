@@ -416,8 +416,13 @@ def plot_dual_diagnosis(student, sv, ce_dict, student_id, shap_threshold, ce_thr
     labels_map = {'✅': '优先干预', '⚠️': '仅观察', '💡': '潜在有效', '➖': '无需关注'}
     for i, feat in enumerate(features):
         s = abs(sv[i])
-        c = ce_dict[feat]
-        if s > shap_threshold and c > ce_threshold:
+        # 个体化因果效应（与 layer2_dual_diagnosis 的分类一致）
+        score = student[feat]
+        headroom = max(0.0, 5.0 - float(score))
+        c = ce_dict[feat] * headroom
+        if headroom < MIN_HEADROOM:
+            color, size = colors_map['➖'], 150
+        elif s > shap_threshold and c > ce_threshold:
             color, size = colors_map['✅'], 300
         elif s > shap_threshold and c <= ce_threshold:
             color, size = colors_map['⚠️'], 250
@@ -431,8 +436,8 @@ def plot_dual_diagnosis(student, sv, ce_dict, student_id, shap_threshold, ce_thr
     ax.axhline(y=ce_threshold, color='gray', linestyle='--', alpha=0.5)
     ax.axvline(x=shap_threshold, color='gray', linestyle='--', alpha=0.5)
     ax.set_xlabel('|SHAP值|（模型归因重要性）', fontsize=13, fontproperties=_cjk_prop)
-    ax.set_ylabel('因果效应（分）', fontsize=13, fontproperties=_cjk_prop)
-    ax.set_title(f'{student_id} 双维度诊断散点图（SHAP × 因果效应）\n阈值基于训练集自适应计算',
+    ax.set_ylabel('个体化因果效应（分）', fontsize=13, fontproperties=_cjk_prop)
+    ax.set_title(f'{student_id} 双维度诊断散点图（SHAP × 个体化因果效应）\n阈值基于训练集自适应计算',
                  fontsize=13, fontweight='bold', fontproperties=_cjk_prop)
     from matplotlib.patches import Patch
     legend_elements = [
