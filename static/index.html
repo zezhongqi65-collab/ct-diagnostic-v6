@@ -212,6 +212,8 @@ textarea{resize:vertical;min-height:230px;font-family:ui-monospace,Consolas,mono
 
 /* 打印：隐藏全部视图，仅输出挂载到 printMount 的 .print-area 副本 */
 .print-area{display:none}
+.pkt-student{break-after:page;page-break-after:always}
+.pkt-answer{break-before:page;page-break-before:always}
 @media print{
   body{background:#fff}
   .app-shell{display:block;min-width:0}
@@ -219,6 +221,13 @@ textarea{resize:vertical;min-height:230px;font-family:ui-monospace,Consolas,mono
   #printMount .print-area{display:block}
   .sheet-preview{border:0;padding:0;max-width:100%}
   .card{box-shadow:none;border:0}
+  /* 题单打印：放大字体，保证可读 */
+  .q-item .qh,.q-item .qstem{font-size:16px}
+  .q-item .ansline{height:34px}
+  .answer-key p{font-size:13.5px}
+  .sheet-preview h3{font-size:22px}
+  .pkt-student{break-after:page;page-break-after:always}
+  .pkt-answer{break-before:page;page-break-before:always}
 }
 @media(max-width:1180px){
   .app-shell{min-width:0}
@@ -1206,14 +1215,22 @@ document.getElementById('resetSheet').addEventListener('click',async()=>{
 /* ---------- 一人一单：按诊断结果生成个人题单 + 分发清单 ---------- */
 document.getElementById('genPkt').addEventListener('click',genPkt);
 async function genPkt(){
-  const weak=state.batch.filter(r=>r.pri.length>0);
-  if(!weak.length){toast('请先到「批量诊断」完成诊断（且至少有学生含优先干预维度）');return;}
+  // 数据来源：优先批量诊断结果，否则用当前单人诊断
+  let students=[],noWeak=0;
+  if(state.batch.length){
+    const weak=state.batch.filter(r=>r.pri.length>0);
+    noWeak=state.batch.length-weak.length;
+    students=weak.map(r=>({id:r.id,name:r.name||'',cls:r.cls||'',dims:r.pri}));
+  }else if(state.current){
+    const pri=state.current.res.rows.filter(x=>x.pri===0).map(x=>x.dim);
+    if(pri.length){students=[{id:state.current.id,name:'',cls:'',dims:pri}];}
+    else{noWeak=1;}
+  }
+  if(!students.length){toast('请先完成诊断（单人诊断或批量诊断，且含优先干预维度）');return;}
   const count=parseInt(document.getElementById('pktCount').value);
   const week=parseInt(document.getElementById('pktWeek').value);
   const maxDiff=parseInt(document.getElementById('pktDiff').value);
   const maxDims=parseInt(document.getElementById('pktMaxDims').value);
-  const students=weak.map(r=>({id:r.id,name:r.name||'',cls:r.cls||'',dims:r.pri}));
-  const noWeak=state.batch.length-weak.length;
   const btn=document.getElementById('genPkt');btn.disabled=true;btn.textContent='生成中…';
   try{
     const res=await postJSON('/api/intervention/students',{students,count,week,max_diff:maxDiff,max_dims:maxDims});
@@ -1237,7 +1254,7 @@ function renderPkt(noWeak){
     html+=`<div style="margin:0 0 12px;padding:10px 12px;background:#FBF1E6;border-left:4px solid var(--c-observe);border-radius:6px;font-size:13px;color:#8a5a00">${res.warnings.map(w=>`⚠️ ${w}`).join('<br>')}</div>`;
   }
   res.packets.forEach(p=>{
-    html+='<div style="page-break-after:always">';
+    html+='<div class="pkt-student">';
     html+=`<div style="border-bottom:2px solid var(--teal-d);padding-bottom:6px;margin-bottom:10px"><span style="font-family:var(--serif);font-weight:700;font-size:16px">计算思维个性化训练题单（第 ${res.week} 周）</span><span style="float:right;font-size:13px;color:var(--ink-2)">${p.cls||''} ${p.name||''}（${p.id}）</span></div>`;
     html+=`<div style="font-size:13px;color:var(--ink-2);margin-bottom:10px">训练维度：${p.dims.map(d=>`${d}·${FULL[d]}`).join('、')}　|　共 ${p.questions.length} 题　|　作答要求：请独立思考，用文字或图形写出思路。</div>`;
     p.dims.forEach(d=>{
@@ -1248,7 +1265,7 @@ function renderPkt(noWeak){
     });
     html+='</div>';
   });
-  html+='<div style="page-break-before:always"><div class="answer-key"><h4>参考答案（教师用，第 '+res.week+' 周）</h4>';
+  html+='<div class="pkt-answer"><div class="answer-key"><h4>参考答案（教师用，第 '+res.week+' 周）</h4>';
   const seen=new Set();let ai=1;
   res.packets.forEach(p=>p.questions.forEach(q=>{
     if(seen.has(q.id))return;seen.add(q.id);

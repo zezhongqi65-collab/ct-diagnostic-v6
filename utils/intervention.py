@@ -263,7 +263,9 @@ def _add_question(doc, idx: int, q: dict) -> None:
     """向文档追加一道题（题干 + 作答区）。"""
     tag = '（AI 生成，请教师核对）' if q.get('is_variant') else ''
     doc.add_paragraph(f'第 {idx} 题　【{q["type"]}】{tag}')
-    doc.add_paragraph(q['stem'])
+    # 题干按换行符拆成多行（九宫格、步骤排序等题有 \n）
+    for line in q['stem'].split('\n'):
+        doc.add_paragraph(line)
     # 作答空白区
     for _ in range(3):
         doc.add_paragraph('')
