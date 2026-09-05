@@ -9,3 +9,5 @@ __pycache__/
 *.zip
 secrets.toml
 .env
+dist/
+build/

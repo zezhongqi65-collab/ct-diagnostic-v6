@@ -32,7 +32,24 @@ DIM_NAMES: dict[str, str] = {
     '建模': '数学建模与符号化',
     '评估': '方案评估与调试',
 }
-QUESTION_BANK_PATH: Path = _PARENT / 'data' / 'question_bank.json'
+
+
+def _resource_path(relative: str) -> Path:
+    """资源读取路径：兼容源码运行与 PyInstaller 打包（sys._MEIPASS）。"""
+    base = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent.parent))
+    return base / relative
+
+
+def _writable_dir(relative: str) -> Path:
+    """可写目录：打包后用 exe 所在目录，源码运行用项目根目录。"""
+    if getattr(sys, 'frozen', False):
+        base = Path(sys.executable).resolve().parent
+    else:
+        base = Path(__file__).resolve().parent.parent
+    return base / relative
+
+
+QUESTION_BANK_PATH: Path = _resource_path('data/question_bank.json')
 
 
 # ═══════════════════════════════════════════════════════
@@ -273,7 +290,7 @@ def generate_intervention_package(
     bank = bank if bank is not None else load_question_bank()
     groups = group_students_by_dim(diagnosis_results)
 
-    out_dir = out_dir or (_PARENT / 'data' / 'intervention')
+    out_dir = out_dir or _writable_dir('data/intervention')
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
