@@ -171,6 +171,23 @@ def compute_adaptive_thresholds(model, X_train):
     return shap_threshold, ce_threshold
 
 
+# ── 模块级缓存：SHAP explainer 初始化与阈值计算都很慢，应用内只有一个诊断模型，
+#    缓存后避免每次诊断重复计算（这是点击卡顿的主要来源）。────
+_cached_model = None
+_cached_explainer = None
+_cached_thresholds = None
+
+
+def _get_explainer_and_thresholds(model, X_train):
+    """返回缓存的 SHAP explainer 与自适应阈值（模型变化时才重新计算）。"""
+    global _cached_model, _cached_explainer, _cached_thresholds
+    if _cached_model is not model:
+        _cached_model = model
+        _cached_explainer = shap.TreeExplainer(model)
+        _cached_thresholds = compute_adaptive_thresholds(model, X_train)
+    return _cached_explainer, _cached_thresholds
+
+
 # ============================================
 # 4. Layer 1: 反事实分析
 # ============================================
@@ -294,10 +311,9 @@ def trace_root_cause(dim, student, dag_edges):
 
 def layer2_dual_diagnosis(model, student, df_all, student_id, X_train):
     features = CAUSAL_ORDER
-    explainer = shap.TreeExplainer(model)
+    explainer, (shap_threshold, ce_threshold) = _get_explainer_and_thresholds(model, X_train)
     sv = explainer.shap_values(student.values.reshape(1, -1))[0]
     ce_dict = estimate_all_causal_effects(df_all)
-    shap_threshold, ce_threshold = compute_adaptive_thresholds(model, X_train)
     report = []
     report.append(f"\n{'='*60}")
     report.append(f"【Layer 2: 双维度诊断（SHAP × 因果效应）】学生 {student_id}")
