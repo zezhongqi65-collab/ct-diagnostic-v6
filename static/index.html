@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>计算思维三层因果诊断工作台</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+<style>
+/* ============ 设计令牌 ============ */
+:root{
+  --paper:#F6F3EC; --paper-2:#EFE9DC; --card:#FFFFFF; --card-2:#FBF8F1;
+  --ink:#21303A; --ink-2:#465863; --ink-3:#7C8994;
+  --line:#E4DECF; --line-2:#D6CEBB;
+  --teal:#0E6B63; --teal-d:#0A4D47; --teal-soft:#E2F0ED;
+  --c-priority:#2F9E6E; --c-observe:#D08A12; --c-potential:#2F7FB8; --c-none:#98A5B0;
+  --bg-priority:#E7F4EC; --bg-observe:#FAF1DC; --bg-potential:#E8F1F8; --bg-none:#EEF1F4;
+  --serif:"Noto Serif SC","Songti SC","SimSun",serif;
+  --sans:"Noto Sans SC","Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+  --shadow:0 1px 2px rgba(33,48,58,.05),0 4px 16px rgba(33,48,58,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);color:var(--ink);background:var(--paper);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+button{font-family:var(--sans);cursor:pointer}
+::selection{background:var(--teal-soft)}
+
+/* ============ 外壳与导航 ============ */
+.app-shell{display:flex;min-height:100vh}
+.sidebar{width:224px;flex:0 0 224px;background:#103B37;color:#E9F2EF;display:flex;flex-direction:column;padding:24px 16px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:22px}
+.brand .logo{width:34px;height:34px;border:1.5px solid #7FC4B8;border-radius:8px;display:grid;place-items:center;font-family:var(--serif);font-weight:700;font-size:16px;color:#7FC4B8}
+.brand h1{font-family:var(--serif);font-size:16px;font-weight:700;line-height:1.35;color:#fff}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:0;background:transparent;color:#BFD6D0;font-size:14px;padding:11px 12px;border-radius:8px;transition:.15s;font-weight:500}
+.nav button:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav button.active{background:var(--teal);color:#fff}
+.nav .idx{font-family:var(--serif);font-size:12px;opacity:.6;margin-left:auto}
+.side-foot{margin-top:auto;font-size:11px;color:#8FB5AC;line-height:1.7;border-top:1px solid rgba(255,255,255,.12);padding-top:12px}
+.content{flex:1;padding:28px 34px 60px;min-width:0}
+.view{display:none;animation:fade .25s ease}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ============ 页头 ============ */
+.page-head{margin-bottom:18px}
+.page-head .eyebrow{font-size:11px;letter-spacing:2px;color:var(--teal);font-weight:700}
+.page-head h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:4px 0}
+.page-head p{color:var(--ink-2);font-size:13px;max-width:840px}
+
+/* ============ 卡片与组件 ============ */
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
+.card-h{padding:13px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.card-h h3{font-family:var(--serif);font-size:15px;font-weight:700}
+.card-h .tag{font-size:11px;font-weight:700;color:var(--teal-d);background:var(--teal-soft);border:1px solid #BFDDD6;padding:2px 8px;border-radius:20px;letter-spacing:.5px}
+.card-b{padding:16px 18px}
+.btn{border:1px solid var(--line-2);background:#fff;color:var(--ink-2);border-radius:8px;padding:9px 18px;font-size:13.5px;font-weight:500;transition:.15s}
+.btn:hover{border-color:var(--teal);color:var(--teal-d)}
+.btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn.primary:hover{background:var(--teal-d)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px}
+.pill .dot{width:8px;height:8px;border-radius:50%}
+.p-priority{color:var(--c-priority);background:var(--bg-priority)} .p-priority .dot{background:var(--c-priority)}
+.p-observe{color:#A86E0A;background:var(--bg-observe)} .p-observe .dot{background:var(--c-observe)}
+.p-potential{color:var(--c-potential);background:var(--bg-potential)} .p-potential .dot{background:var(--c-potential)}
+.p-none{color:#6B7884;background:var(--bg-none)} .p-none .dot{background:var(--c-none)}
+.disc{font-size:12px;color:#8A6D3B;background:#FBF3E2;border:1px solid #ECDCB8;border-radius:8px;padding:9px 12px;line-height:1.6}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line)}
+th{font-size:12px;color:var(--ink-3);font-weight:700;background:var(--card-2)}
+tr:last-child td{border-bottom:0}
+.muted{color:var(--ink-3);font-size:12.5px}
+
+/* ============ 单人：布局 ============ */
+.single-layout{display:grid;grid-template-columns:320px 1fr;gap:18px;align-items:start}
+.dim-slider{margin-bottom:18px}
+.dim-slider .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.dim-slider .nm{font-size:13.5px;font-weight:700}
+.dim-slider .val{font-family:var(--serif);font-size:20px;font-weight:700;color:var(--teal-d)}
+.dim-slider input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:5px;background:linear-gradient(90deg,var(--teal) var(--p,50%),var(--paper-2) var(--p,50%));outline:none}
+.dim-slider input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:19px;height:19px;border-radius:50%;background:#fff;border:3px solid var(--teal);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+label.flabel{display:block;font-size:12.5px;color:var(--ink-2);font-weight:500;margin-bottom:6px}
+input[type=text]{font-family:var(--sans);font-size:13.5px;color:var(--ink);background:var(--card-2);border:1px solid var(--line-2);border-radius:7px;padding:9px 11px;width:100%;outline:none}
+input[type=text]:focus{border-color:var(--teal);background:#fff;box-shadow:0 0 0 3px var(--teal-soft)}
+
+/* 结果区 */
+.score-hero{background:linear-gradient(150deg,#0E6B63,#0A4D47);color:#fff;border-radius:10px;padding:18px;display:flex;align-items:baseline;gap:14px}
+.score-hero .lab{font-size:12px;color:#BFE0D9;letter-spacing:1px}
+.score-hero .big{font-family:var(--serif);font-size:48px;font-weight:900;line-height:1}
+.score-hero .big small{font-size:16px;font-weight:400;color:#BFE0D9}
+.score-hero .best{font-size:13px;color:#E7F4F0}
+.results-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.dim-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line)}
+.dim-row:last-child{border-bottom:0}
+.dim-row .nm{font-size:13.5px;font-weight:600}
+.dim-row .meta{font-size:12px;color:var(--ink-3);margin-top:2px}
+.chart{width:100%;height:300px}
+#scatter{width:100%;height:340px}
+textarea{font-family:var(--mono,monospace);font-size:12.5px;width:100%;min-height:140px;background:var(--card-2);border:1px solid var(--line-2);border-radius:8px;padding:10px;outline:none}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:99}
+#toast.show{opacity:1}
+.method-section{margin-bottom:22px}
+.method-section h4{font-family:var(--serif);font-size:16px;margin-bottom:8px}
+.method-section p{font-size:13.5px;color:var(--ink-2);line-height:1.8}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <!-- 侧边栏 -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">CT</div>
+      <h1>计算思维<br>三层因果诊断</h1>
+    </div>
+    <nav class="nav">
+      <button class="active" data-view="single"><span>01</span> 单人诊断<span class="idx">→</span></button>
+      <button data-view="batch"><span>02</span> 批量诊断<span class="idx">→</span></button>
+      <button data-view="method"><span>03</span> 方法说明<span class="idx">→</span></button>
+    </nav>
+    <div class="side-foot">可解释 AI · SHAP × 因果推断<br>仅供教育参考</div>
+  </aside>
+
+  <!-- 主内容 -->
+  <main class="content">
+    <!-- 视图 01：单人诊断 -->
+    <section class="view active" id="view-single">
+      <div class="page-head">
+        <div class="eyebrow">VIEW 01 · SINGLE</div>
+        <h2>单人三层因果诊断</h2>
+        <p>录入一名学生的五个计算思维维度得分，系统即时给出作业质量预测、反事实模拟、SHAP×个体化因果效应四分类诊断与教师报告。</p>
+      </div>
+      <div class="single-layout">
+        <!-- 左：输入 -->
+        <div class="card">
+          <div class="card-h"><h3>五维得分录入</h3></div>
+          <div class="card-b">
+            <div style="margin-bottom:14px">
+              <label class="flabel">学生 ID</label>
+              <input type="text" id="sid" value="S001">
+            </div>
+            <div id="sliders"></div>
+            <button class="btn primary" id="runDiag" style="width:100%">开始诊断</button>
+            <div class="muted" style="margin-top:10px">得分范围 1–5，1=非常不符合，5=非常符合</div>
+          </div>
+        </div>
+        <!-- 右：结果 -->
+        <div id="result"></div>
+      </div>
+    </section>
+
+    <!-- 视图 02：批量诊断 -->
+    <section class="view" id="view-batch">
+      <div class="page-head">
+        <div class="eyebrow">VIEW 02 · BATCH</div>
+        <h2>批量诊断与分组</h2>
+        <p>每行一名学生，格式：学生ID,抽象,分解,算法设计,建模,评估（逗号分隔，第一行为表头）。逐人诊断后输出汇总与「按最优先维度」的干预分组。</p>
+      </div>
+      <div class="card">
+        <div class="card-b">
+          <textarea id="batchInput" placeholder="学生ID,抽象,分解,算法设计,建模,评估&#10;S001,2,3,4,3.5,2.5&#10;S002,4,2,3,4.5,3"></textarea>
+          <div style="margin-top:12px;display:flex;gap:10px">
+            <button class="btn primary" id="runBatch">开始批量诊断</button>
+            <button class="btn" id="exportBatch" disabled>导出 CSV</button>
+          </div>
+          <div id="batchResult" style="margin-top:16px"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 视图 03：方法说明 -->
+    <section class="view" id="view-method">
+      <div class="page-head">
+        <div class="eyebrow">VIEW 03 · METHOD</div>
+        <h2>三层因果可解释诊断 · 方法说明</h2>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-h"><h3>五个计算思维维度与因果 DAG</h3></div>
+        <div class="card-b">
+          <p style="font-size:13.5px;color:var(--ink-2);line-height:1.8">后门调整沿 DAG 控制父节点混杂：<b>抽象 → 分解</b>、<b>抽象 → 算法设计</b>、<b>算法设计 → 建模</b>、<b>算法设计 → 评估</b>。估计某维度因果效应时，以其父维度作为协变量，剔除上游能力带来的混杂。</p>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-h"><h3>四象限分类规则</h3></div>
+        <div class="card-b">
+          <table>
+            <tr><th>条件</th><th>分类</th><th>教学建议</th></tr>
+            <tr><td>|SHAP| 高 且 个体化效应高</td><td><span class="pill p-priority"><span class="dot"></span>优先干预</span></td><td>立即安排专项训练</td></tr>
+            <tr><td>|SHAP| 高 但 个体化效应低</td><td><span class="pill p-observe"><span class="dot"></span>仅观察</span></td><td>沿 DAG 追溯薄弱父维度，先练根因</td></tr>
+            <tr><td>|SHAP| 低 但 个体化效应高</td><td><span class="pill p-potential"><span class="dot"></span>潜在有效</span></td><td>作为二级备选干预目标</td></tr>
+            <tr><td>|SHAP| 低 且 个体化效应低 / 接近满分</td><td><span class="pill p-none"><span class="dot"></span>无需关注</span></td><td>维持现有教学方式</td></tr>
+          </table>
+          <div class="disc" style="margin-top:12px">个体化调制用于消除「满分维度仍建议干预」的生态谬误：群体因果效应（每 1 分边际）乘以该学生的提升空间 headroom = max(0, 5 − 得分)，才是属于这个个体的预期收益。</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>与科研版的关系</h3></div>
+        <div class="card-b">
+          <p style="font-size:13.5px;color:var(--ink-2);line-height:1.8">本工作台的后端即科研版引擎：<b>XGBoost 预测 + TreeSHAP 归因 + 后门调整因果推断</b>。诊断流程、维度映射、因果 DAG、提升空间调制、四分类规则与原项目完全一致。正式实验请在后端加载真实前测数据训练的模型。</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div id="toast"></div>
+
+<script>
+/* ============ 工具 ============ */
+const ORDER = ['抽象','分解','算法设计','建模','评估'];
+const CAT_STYLE = {'优先干预':'p-priority','仅观察':'p-observe','潜在有效':'p-potential','无需关注':'p-none'};
+const CAT_KEY = {'优先干预':'✅','仅观察':'⚠️','潜在有效':'💡','无需关注':'➖'};
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function pill(cat){return `<span class="pill ${CAT_STYLE[cat]}"><span class="dot"></span>${CAT_KEY[cat]} ${esc(cat)}</span>`;}
+
+/* ============ 导航 ============ */
+document.querySelectorAll('.nav button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+b.dataset.view).classList.add('active');
+    if(window.__charts) window.__charts.forEach(c=>c.resize());
+  });
+});
+
+/* ============ 单人诊断：滑块 ============ */
+const scores = {抽象:3,分解:3,算法设计:3,建模:3,评估:3};
+const slidersBox = document.getElementById('sliders');
+ORDER.forEach(k=>{
+  const wrap=document.createElement('div');wrap.className='dim-slider';
+  wrap.innerHTML=`<div class="top"><span class="nm">${k}</span><span class="val">3.0</span></div><input type="range" min="1" max="5" step="0.1" value="3">`;
+  const inp=wrap.querySelector('input'), val=wrap.querySelector('.val');
+  inp.addEventListener('input',()=>{scores[k]=+inp.value;val.textContent=(+inp.value).toFixed(1);inp.style.setProperty('--p',((inp.value-1)/4*100)+'%');});
+  inp.dispatchEvent(new Event('input'));
+  slidersBox.appendChild(wrap);
+});
+
+/* ============ 诊断调用与渲染 ============ */
+let radarChart=null, scatterChart=null;
+window.__charts=[];
+
+async function diagnose(){
+  const btn=document.getElementById('runDiag');btn.disabled=true;btn.textContent='诊断中…';
+  try{
+    const res=await fetch('/api/diagnose',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({student_id:document.getElementById('sid').value,scores})});
+    const d=await res.json();
+    renderResult(d);
+  }catch(e){toast('诊断失败：后端未启动');}
+  finally{btn.disabled=false;btn.textContent='开始诊断';}
+}
+document.getElementById('runDiag').addEventListener('click',diagnose);
+
+function renderResult(d){
+  const box=document.getElementById('result');
+  const bestDim=d.cf_best_dim;
+  box.innerHTML=`
+    <div class="score-hero">
+      <div><div class="lab">预测作业质量</div><div class="big">${d.base_pred}<small> / 100</small></div></div>
+      <div class="best">反事实结论：优先提升「${esc(bestDim)}」预计 +${d.cf_best_gain} 分</div>
+    </div>
+    <div class="results-grid">
+      <div class="card">
+        <div class="card-h"><h3>五维得分</h3></div>
+        <div class="card-b"><div class="chart" id="radar"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>四分类诊断</h3><span class="tag">LAYER 2</span></div>
+        <div class="card-b" id="layer2List"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-h"><h3>四象限诊断散点</h3><span class="tag">LAYER 2</span></div>
+      <div class="card-b"><div id="scatter"></div></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-h"><h3>反事实分析</h3><span class="tag">LAYER 1</span></div>
+      <div class="card-b" id="layer1Table"></div>
+    </div>
+  `;
+  // Layer 2 列表
+  const l2=d.layer2.map(r=>`
+    <div class="dim-row">
+      <div><div class="nm">${esc(r.维度)}　${pill(r.分类)}</div>
+        <div class="meta">SHAP ${(+r.SHAP).toFixed(2)} · 个体化效应 +${(+r.因果效应).toFixed(1)}分</div>
+        <div class="meta">${esc(r.建议)}</div></div>
+    </div>`).join('');
+  document.getElementById('layer2List').innerHTML=l2;
+  // 雷达图
+  radarChart=echarts.init(document.getElementById('radar'));
+  radarChart.setOption({radar:{indicator:ORDER.map(k=>({name:d.dim_names[k],max:5})),radius:'62%'},
+    series:[{type:'radar',data:[{value:ORDER.map(k=>d.scores[k]),areaStyle:{opacity:.2},name:d.student_id}],symbolSize:5}]});
+  // 散点图
+  scatterChart=echarts.init(document.getElementById('scatter'));
+  const cmap={'优先干预':'#2F9E6E','仅观察':'#D08A12','潜在有效':'#2F7FB8','无需关注':'#98A5B0'};
+  const pts=d.layer2.map(r=>({value:[Math.abs(+r.SHAP), +r.因果效应], name:r.维度, cat:r.分类}));
+  scatterChart.setOption({tooltip:{formatter:p=>`${p.data.name}<br>|SHAP| ${p.value[0].toFixed(2)}<br>效应 ${p.value[1].toFixed(1)}`},
+    xAxis:{name:'|SHAP| 重要性',type:'value',splitLine:{show:false}},
+    yAxis:{name:'个体化因果效应（分）',type:'value'},
+    series:[{type:'scatter',data:pts,symbolSize:26,
+      itemStyle:{color:p=>cmap[p.data.cat]},
+      markLine:{silent:true,symbol:'none',data:[{xAxis:d.shap_threshold},{yAxis:d.ce_threshold}],lineStyle:{color:'#aaa',type:'dashed'}}}],
+    grid:{left:60,right:30,top:20,bottom:50}});
+  // Layer 1 反事实表
+  let l1=`<table><tr><th>维度</th><th>当前</th><th>提至满分预测</th><th>变化</th></tr>`;
+  d.layer1.forEach(x=>{
+    const full=x.series.find(s=>s[f'{x.dim}假设值']===5);
+    l1+=`<tr><td>${esc(x.dim)}</td><td>${x.current}</td><td>${full?full.预测成绩:'—'}</td><td>${full?(full.相比当前变化>0?'+':''):''}${full?full.相比当前变化:'—'}</td></tr>`;
+  });
+  l1+='</table><div class="disc" style="margin-top:10px">免责声明：以上为模型假设模拟（CFE），仅展示「若该维度独立变化，模型预测如何改变」，非真实因果；实际干预优先级请以 Layer 2 个体化因果效应为准。</div>';
+  document.getElementById('layer1Table').innerHTML=l1;
+  window.__charts=[radarChart,scatterChart];
+}
+
+/* ============ 批量诊断 ============ */
+document.getElementById('runBatch').addEventListener('click',async()=>{
+  const text=document.getElementById('batchInput').value.trim();
+  if(!text){toast('请先粘贴数据');return;}
+  const lines=text.split('\n').filter(l=>l.trim());
+  const students=lines.slice(1).map(l=>{
+    const p=l.split(',').map(s=>s.trim());
+    return {student_id:p[0],scores:{抽象:+p[1],分解:+p[2],算法设计:+p[3],建模:+p[4],评估:+p[5]}};
+  });
+  const btn=document.getElementById('runBatch');btn.disabled=true;btn.textContent='诊断中…';
+  try{
+    const res=await fetch('/api/batch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({students})});
+    const data=await res.json();
+    renderBatch(data.results,students);
+    document.getElementById('exportBatch').disabled=false;
+  }catch(e){toast('批量诊断失败');}
+  finally{btn.disabled=false;btn.textContent='开始批量诊断';}
+});
+
+let lastBatch=[];
+function renderBatch(results){
+  lastBatch=results;
+  const box=document.getElementById('batchResult');
+  // 汇总表
+  let t=`<table><tr><th>学生</th><th>预测分</th>${ORDER.map(k=>`<th>${k}</th>`).join('')}<th>优先干预维度</th></tr>`;
+  results.forEach(r=>{
+    const pri=r.layer2.filter(x=>x.分类==='优先干预').map(x=>x.维度).join('、')||'无';
+    t+=`<tr><td>${esc(r.student_id)}</td><td>${r.base_pred}</td>${ORDER.map(k=>`<td>${r.scores[k]}</td>`).join('')}<td>${esc(pri)}</td></tr>`;
+  });
+  t+='</table>';
+  // 分组
+  const groups={};
+  results.forEach(r=>{
+    const pri=r.layer2.find(x=>x.分类==='优先干预');
+    const key=pri?pri.维度:'综合';
+    (groups[key]=groups[key]||[]).push(r.student_id);
+  });
+  let g='<h3 style="margin:16px 0 8px;font-family:var(--serif)">干预分组</h3><table><tr><th>维度</th><th>人数</th><th>学生</th></tr>';
+  Object.entries(groups).forEach(([dim,ids])=>{g+=`<tr><td>${esc(dim)}</td><td>${ids.length}</td><td>${esc(ids.join('、'))}</td></tr>`;});
+  g+='</table>';
+  box.innerHTML=t+g;
+}
+document.getElementById('exportBatch').addEventListener('click',()=>{
+  if(!lastBatch.length)return;
+  let csv='学生ID,预测分,'+ORDER.join(',')+'优先干预维度\n';
+  lastBatch.forEach(r=>{const pri=r.layer2.filter(x=>x.分类==='优先干预').map(x=>x.维度).join('、')||'无';csv+=`${r.student_id},${r.base_pred},${ORDER.map(k=>r.scores[k]).join(',')},${pri}\n`;});
+  const blob=new Blob(['﻿'+csv],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='批量诊断汇总.csv';a.click();
+});
+</script>
+</body>
+</html>
