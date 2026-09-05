@@ -253,7 +253,7 @@ if mode.startswith("📊"):
                     raw_df = pd.read_excel(uploaded_file)
 
                 st.success(f"已加载 {len(raw_df)} 条记录")
-                st.dataframe(raw_df.head(10), use_container_width=True)
+                st.dataframe(raw_df.head(10), width='stretch')
 
                 # 列名映射
                 id_col = next(
@@ -263,7 +263,7 @@ if mode.startswith("📊"):
 
                 has_homework = '作业质量' in raw_df.columns
 
-                if st.button("🚀 开始批量诊断", type="primary", use_container_width=True):
+                if st.button("🚀 开始批量诊断", type="primary", width='stretch'):
                     ensure_model()
 
                     # 在用户数据上重训练模型（如果有作业质量列）
@@ -307,7 +307,7 @@ if mode.startswith("📊"):
             st.subheader("📋 批量诊断汇总")
 
             summary_df = build_batch_summary(st.session_state.batch_results)
-            st.dataframe(summary_df, use_container_width=True)
+            st.dataframe(summary_df, width='stretch')
 
             # 导出
             col1, col2 = st.columns(2)
@@ -357,7 +357,7 @@ if mode.startswith("📊"):
                     )
             student_id = st.text_input("学生ID", value="S001")
 
-            if st.button("🔍 开始诊断", type="primary", use_container_width=True):
+            if st.button("🔍 开始诊断", type="primary", width='stretch'):
                 ensure_model()
                 with st.spinner("正在运行三层诊断分析..."):
                     student_row = pd.Series(scores)
@@ -375,12 +375,12 @@ if mode.startswith("📊"):
             uploaded_file = st.file_uploader("上传CSV文件", type=["csv"])
             if uploaded_file:
                 raw_df = pd.read_csv(uploaded_file)
-                st.dataframe(raw_df.head(), use_container_width=True)
+                st.dataframe(raw_df.head(), width='stretch')
 
                 id_col = st.selectbox("选择学生ID列", raw_df.columns.tolist())
                 student_idx = st.number_input("选择第几行数据", 0, len(raw_df) - 1, 0)
 
-                if st.button("🔍 开始诊断", type="primary", use_container_width=True):
+                if st.button("🔍 开始诊断", type="primary", width='stretch'):
                     ensure_model()
                     row = raw_df.iloc[student_idx]
                     sid = str(row[id_col])
@@ -421,7 +421,7 @@ else:
                     py_files = [f for f in zf.namelist() if f.endswith('.py') and not f.startswith('__')]
                     st.info(f"检测到 {len(py_files)} 个Python文件")
 
-                if st.button("🚀 开始批量评估与诊断", type="primary", use_container_width=True):
+                if st.button("🚀 开始批量评估与诊断", type="primary", width='stretch'):
                     ensure_model()
                     analyzer = CTCodeAnalyzer()
 
@@ -459,7 +459,7 @@ else:
             st.markdown("---")
             st.subheader("📋 批量诊断汇总")
             summary_df = build_batch_summary(st.session_state.batch_results)
-            st.dataframe(summary_df, use_container_width=True)
+            st.dataframe(summary_df, width='stretch')
 
             col1, col2 = st.columns(2)
             with col1:
@@ -498,7 +498,7 @@ else:
 
         homework_score = st.slider("历史作业质量分（如无可使用默认值）", 0, 100, 75)
 
-        if st.button("🔍 开始评估与诊断", type="primary", use_container_width=True):
+        if st.button("🔍 开始评估与诊断", type="primary", width='stretch'):
             if not code or not code.strip():
                 st.error("请先输入代码")
             else:
@@ -578,7 +578,7 @@ if st.session_state.diag_result:
                 with st.expander(
                     f"**{DIM_NAMES.get(feat, feat)}** — 当前 {current_val:.1f}分 → 5分预计变化 +{gain:.1f}分"
                 ):
-                    st.dataframe(df_cf, use_container_width=True)
+                    st.dataframe(df_cf, width='stretch')
 
             # 最佳维度
             st.markdown("---")
@@ -760,7 +760,7 @@ else:
         if not deepseek_key:
             st.warning("⚠️ 未检测到 DEEPSEEK_API_KEY，将自动回退到预置母题。")
 
-    if st.button("🎯 生成题单", type="primary", use_container_width=True):
+    if st.button("🎯 生成题单", type="primary", width='stretch'):
         with st.spinner("正在生成思维训练题单..."):
             bank = load_question_bank()
             paths = generate_intervention_package(

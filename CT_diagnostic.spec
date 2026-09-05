@@ -13,8 +13,11 @@ datas = [
 binaries = []
 hiddenimports = []
 
-# 需要完整收集资源/二进制/子模块的库（streamlit 静态资源、shap 的 numba、xgboost 动态库等）
-for lib in ['streamlit', 'shap', 'xgboost', 'statsmodels']:
+# app.py 及其依赖模块是作为「数据文件」打包的，PyInstaller 不会静态分析它们的 import，
+# 因此这里需显式收集所有第三方库，避免打包后 ModuleNotFoundError。
+for lib in ['streamlit', 'shap', 'xgboost', 'statsmodels',
+            'pandas', 'numpy', 'matplotlib', 'scipy', 'sklearn',
+            'openpyxl', 'requests', 'openai', 'docx']:
     d, b, h = collect_all(lib)
     datas += d
     binaries += b
